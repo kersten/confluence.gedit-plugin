@@ -5,27 +5,22 @@ import sys
 import confluenceApi
 
 
-def singleton():
-    if Options.singleton is None:
-        Options.singleton = Options()
-    return Options.singleton
+class options():
 
-
-class Options():
-
-    singleton = None
+    __shared_state = {}
 
     def __init__(self):
+        self.__dict__ = self.__shared_state
+
         self.__gconfDir = "/apps/gedit-2/plugins/confluence"
-
-        self.username = ""
-        self.password = ""
-        self.url = "https://your.confluence.url/rpc"
-
         # create gconf directory if not set yet
         self.client = gconf.client_get_default()
         if not self.client.dir_exists(self.__gconfDir):
             self.client.add_dir(self.__gconfDir, gconf.CLIENT_PRELOAD_NONE)
+
+        self.username = ""
+        self.password = ""
+        self.url = "https://your.confluence.url/rpc"
 
         # get the gconf keys, or stay with default if key not set
         try:
