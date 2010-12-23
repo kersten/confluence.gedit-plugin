@@ -103,7 +103,17 @@
             <property name="visible">True</property>
             <property name="layout_style">end</property>
             <child>
-              <placeholder/>
+              <object class="GtkButton" id="button1">
+                <property name="label" translatable="yes">button</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">0</property>
+              </packing>
             </child>
             <child>
               <object class="GtkButton" id="_closeButton">
@@ -129,6 +139,7 @@
       </object>
     </child>
     <action-widgets>
+      <action-widget response="0">button1</action-widget>
       <action-widget response="0">_closeButton</action-widget>
     </action-widgets>
   </object>
@@ -248,6 +259,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <signal name="clicked" handler="on_testButton_clicked"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -261,6 +273,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <signal name="clicked" handler="on_closeButton_clicked"/>
               </object>
               <packing>
                 <property name="expand">False</property>
