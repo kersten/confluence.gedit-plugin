@@ -1,0 +1,1 @@
+<a href='http://www.pledgie.com/campaigns/14263'><img alt='Click here to lend your support to: coding and make a donation at www.pledgie.com !' src='http://www.pledgie.com/campaigns/14263.png?skin_name=chrome' border='0' /></a>
