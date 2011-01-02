@@ -2,6 +2,11 @@ import gtk
 import gobject
 import gedit
 import options
+import os
+import sys
+import tempfile
+
+from confluencerpclib import Confluence
 
 
 class ConfluenceBrowser(gtk.VBox):
@@ -12,6 +17,8 @@ class ConfluenceBrowser(gtk.VBox):
 
         gtk.VBox.__init__(self)
         self.geditwindow = geditwindow
+        
+        self.tabs = []
 
         try:
             self.encoding = gedit.encoding_get_current()
@@ -52,12 +59,78 @@ class ConfluenceBrowser(gtk.VBox):
         self.column = gtk.TreeViewColumn()
         self.browser.append_column(self.column)
 
-        self.cellrendererpixbuf = gtk.CellRendererPixbuf()
-        self.column.pack_start(self.cellrendererpixbuf, False)
+        self.cellrendererpixbuf = gtk.CellRendererText()
+        self.column.pack_start(self.cellrendererpixbuf, True)
+        self.column.add_attribute(self.cellrendererpixbuf, 'text', 0)
 
-        self.crt = gtk.CellRendererText()
-        self.column.pack_start(self.crt, False)
+        #self.crt = gtk.CellRendererText()
+        #self.column.pack_start(self.crt, False)
 
         # connect stuff
-        #self.browser.connect("row-activated", self.on_row_activated)
+        self.browser.connect("row-activated", self.on_row_activated)
+        self.geditwindow.connect("active-tab-state-changed", self.active_tab_state_changed)
         self.show_all()
+
+    def on_row_activated(self, widget, row, col):
+        model = widget.get_model()
+        parentIter = model.get_iter(row)
+        print model[row][2]
+        if model[row][2] == 'isSpace':
+            for parent in self.confluence.getPages(model[row][1]):
+                piter = self.treestore.append(parentIter, (parent.title, parent.id, 'isPage'))
+        elif model[row][2] == 'isPage':
+            page = self.confluence.getPage(model[row][1])
+            tf = tempfile.NamedTemporaryFile(delete=False)
+            tf.seek(0)
+            tf.write(page.content)
+            self.geditwindow.create_tab_from_uri('file://' + tf.name, None, 0, False, True)
+            self.tabs = ['file://' + tf.name,]
+        return
+        
+        spaceKey = model[row][1]
+        
+        #self.confluence.getSpace(spaceKey)
+        
+        with tempfile.TemporaryFile() as f:
+            f.write(text)
+            self.geditwindow.create_tab_from_uri(f.name, None, None, False, True)
+        print text
+    
+    def active_tab_state_changed(self, window):
+        tab = window.get_active_tab()
+        path = tab.get_document().get_uri()
+        
+        print path
+        print self.tabs
+        if tab and tab.get_state() == gedit.TAB_STATE_SAVING and path in self.tabs:
+            print tab.get_state()
+        
+    def loadConfluenceBrowser(self, window):
+        self.options = options.options()
+        panel = window.get_side_panel()
+        image = gtk.Image()
+
+        filename = os.path.join(sys.path[0], "confluence", "pixmaps",
+                                "confluence.png")
+        pixbuf = gtk.gdk.pixbuf_new_from_file(filename)
+
+        image.set_from_pixbuf(pixbuf)
+
+        self.confluence = Confluence(self.options.url, True)
+        self.confluence.login(self.options.username, self.options.password)
+        
+        self.treestore = gtk.TreeStore(str, str, str)
+
+         # we'll add some data now - 4 rows with 3 child rows each
+        for parent in self.confluence.getSpaces():
+            piter = self.treestore.append(None, (parent.name, parent.key, 'isSpace'))
+            
+        self.browser.set_model(self.treestore)
+        self.browser.show_all()
+        self.browser.queue_draw()
+
+        #spaces = self.confluence.getSpaces()
+        panel.add_item(self, "Confluence Browser", image)
+
+        # store per window data in the window object
+        windowdata = {"ConfluenceBrowser": self}

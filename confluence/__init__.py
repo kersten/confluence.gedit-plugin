@@ -29,37 +29,21 @@ class confluencePluginPlugin(gedit.Plugin):
         #self.confluence.login(self.options.username, self.options.password)
 
         #print self.confluence.token
-
         #self.confluence.getPage('29458504')
+        confluencewidget = ConfluenceBrowser(window)
 
         if self.options.loginPassed is True:
-            self.loadConfluenceBrowser(window)
+            confluencewidget.loadConfluenceBrowser(window)
         pass
 
     def deactivate(self, window):
-        self.confluence.logout()
         if self.options.loginPassed is True:
             self.unloadConfluenceBrowser(window)
+            self.confluence.logout()
         pass
 
     def update_ui(self, window):
         pass
-
-    def loadConfluenceBrowser(self, window):
-        panel = window.get_side_panel()
-        image = gtk.Image()
-
-        filename = os.path.join(sys.path[0], "confluence", "pixmaps",
-                                "confluence.png")
-        pixbuf = gtk.gdk.pixbuf_new_from_file(filename)
-
-        image.set_from_pixbuf(pixbuf)
-
-        self.confluencebrowser = ConfluenceBrowser(window)
-        panel.add_item(self.confluencebrowser, "Confluence Browser", image)
-
-        # store per window data in the window object
-        windowdata = {"ConfluenceBrowser": self.confluencebrowser}
 
     def unloadConfluenceBrowser(self, window):
         pane = window.get_side_panel()
