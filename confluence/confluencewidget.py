@@ -84,6 +84,7 @@ class ConfluenceBrowser(gtk.VBox):
             
             iter = self.treestore.iter_children(parentIter)
             while iter:
+                print iter
                 self.treestore.remove(iter)
             
             treeStore = {}
@@ -127,16 +128,25 @@ class ConfluenceBrowser(gtk.VBox):
             tab = self.geditwindow.create_tab_from_uri('file://' + tf.name, None, 0, False, True)
             self.tabs['file://' + tf.name] = page
             
-            entry = gtk.Entry()
+            title = gtk.Entry()
+            
+            title.set_text(page.title);
+            
+            tags = gtk.Entry()
             #allow the user to press enter to do ok
             #entry.connect("activate", responseToDialog, dialog, gtk.RESPONSE_OK)
             #create a horizontal box to pack the entry and a label
-            hbox = gtk.HBox()
-            hbox.pack_start(gtk.Label("Tags:"), False, True, 0)
-            hbox.pack_end(entry)
+            hboxTitle = gtk.HBox()
+            hboxTitle.pack_start(gtk.Label("Title:"), False, False, 2)
+            hboxTitle.pack_end(title)
+            
+            hboxTags = gtk.HBox()
+            hboxTags.pack_start(gtk.Label("Tags:"), False, False, 2)
+            hboxTags.pack_end(tags)
             #some secondary text
             #add it and show it
-            tab.pack_end(hbox, True, True, 0)
+            tab.pack_end(hboxTags, False, False, 0)
+            tab.pack_end(hboxTitle, False, False, 0)
             tab.show_all()
     
     def active_tab_state_changed(self, window):
@@ -215,29 +225,35 @@ class ConfluenceBrowser(gtk.VBox):
         dialog.run()
         title = entry.get_text()
         
-        if title.strip() == "":
+        if title.strip() == "" and gtk.RESPONSE_OK:
             dialog.destroy()
             self.add_page(menuitem, spaceKey, parentPageId)
             return
         
         dialog.destroy()
-        
-        page = confluencerpclib.Page()
-        page.space = spaceKey
-        page.title = title
-        page.content = 'New Page added'
+        if title.strip() != "":
+            page = confluencerpclib.Page()
+            page.space = spaceKey
+            page.title = title
+            page.content = 'New Page added'
 
-        if parentPageId is not None:
-            page.parentId = parentPageId
-        
-        page = self.confluence.storePage(page)
-        tf = tempfile.NamedTemporaryFile(delete=False)
-        tf.seek(0)
-        tf.write(page.content)
-        tab = self.geditwindow.create_tab_from_uri('file://' + tf.name, None, 0, False, True)
-        self.tabs['file://' + tf.name] = page
+            if parentPageId is not None:
+                page.parentId = parentPageId
+            
+            page = self.confluence.storePage(page)
+            tf = tempfile.NamedTemporaryFile(delete=False)
+            tf.seek(0)
+            tf.write(page.content)
+            tab = self.geditwindow.create_tab_from_uri('file://' + tf.name, None, 0, False, True)
+            self.tabs['file://' + tf.name] = page
 
     def reload_selected_item(self, menuitem, model):
+        model = self.browser.get_model()
+    
+    def _deletePage(self, menuitem, model):
+        model = self.browser.get_model()
+    
+    def _getComments(self, menuitem, model):
         model = self.browser.get_model()
 
     def __onClick(self, treeview, event):
@@ -256,19 +272,29 @@ class ConfluenceBrowser(gtk.VBox):
             m.connect("activate", self.reload_selected_item, path)
             
             if model[path][2] == 'isSpace':
-                m = gtk.MenuItem('Add Page')
+                m = gtk.MenuItem('Add page')
                 menu.append(m)
                 m.show()
                 m.connect("activate", self.add_page, model[path][1])
               
             if model[path][2] == 'isPage':
-                m = gtk.MenuItem('Add Subpage')
+                m = gtk.MenuItem('Add page')
                 menu.append(m)
                 m.show()
                 m.connect("activate", self.add_page, model[path[0]][1], model[path][1])
-
-            m = gtk.SeparatorMenuItem()
-            m.show()
-            menu.append(m)
+                
+                m = gtk.MenuItem('Delete page')
+                menu.append(m)
+                m.show()
+                m.connect("activate", self._deletePage, model[path[0]][1], model[path][1])
+                
+                m = gtk.SeparatorMenuItem()
+                m.show()
+                menu.append(m)
+                
+                m = gtk.MenuItem('Get comments')
+                menu.append(m)
+                m.show()
+                m.connect("activate", self._getComments, model[path[0]][1], model[path][1])
             
             menu.popup( None, None, None, event.button, event.time)
