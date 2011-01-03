@@ -30,24 +30,20 @@ class confluencePluginPlugin(gedit.Plugin):
 
         #print self.confluence.token
         #self.confluence.getPage('29458504')
-        confluencewidget = ConfluenceBrowser(window)
+        self.confluencewidget = ConfluenceBrowser(window)
 
         if self.options.loginPassed is True:
-            confluencewidget.loadConfluenceBrowser(window)
+            self.confluencewidget.loadConfluenceBrowser(window)
         pass
 
     def deactivate(self, window):
         if self.options.loginPassed is True:
             self.unloadConfluenceBrowser(window)
-            self.confluence.logout()
         pass
 
     def update_ui(self, window):
         pass
 
     def unloadConfluenceBrowser(self, window):
-        pane = window.get_side_panel()
-        pane.remove_item(self.confluencebrowser)
-        windowdata = window.get_data("ConfluenceBrowserPluginWindowDataKey")
-        manager = window.get_ui_manager()
-        manager.remove_action_group(windowdata["action_group"])
+        panel = window.get_side_panel()
+        panel.remove_item(self.confluencewidget)

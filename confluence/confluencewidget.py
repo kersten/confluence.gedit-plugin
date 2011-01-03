@@ -6,7 +6,8 @@ import os
 import sys
 import tempfile
 
-from confluencerpclib import Confluence
+import confluencerpclib
+#import Confluence, Page, PageUpdateOptions
 
 
 class ConfluenceBrowser(gtk.VBox):
@@ -18,7 +19,7 @@ class ConfluenceBrowser(gtk.VBox):
         gtk.VBox.__init__(self)
         self.geditwindow = geditwindow
         
-        self.tabs = []
+        self.tabs = {}
 
         try:
             self.encoding = gedit.encoding_get_current()
@@ -51,7 +52,7 @@ class ConfluenceBrowser(gtk.VBox):
         self.browser = gtk.TreeView()
         self.browser.set_headers_visible(False)
         sw.add(self.browser)
-        #self.browser.connect("button_press_event", self.__onClick)
+        self.browser.connect("button_press_event", self.__onClick)
 
         self.pack_start(sw)
 
@@ -69,42 +70,97 @@ class ConfluenceBrowser(gtk.VBox):
         # connect stuff
         self.browser.connect("row-activated", self.on_row_activated)
         self.geditwindow.connect("active-tab-state-changed", self.active_tab_state_changed)
+        self.geditwindow.connect("tab-removed", self.tab_removed)
         self.show_all()
 
     def on_row_activated(self, widget, row, col):
         model = widget.get_model()
         parentIter = model.get_iter(row)
-        print model[row][2]
+        
         if model[row][2] == 'isSpace':
+            #if model[parentIter].has_children():
+            #    for i in parentIter.get_children():
+            #        unset(parentInter[i])
+            
+            iter = self.treestore.iter_children(parentIter)
+            while iter:
+                self.treestore.remove(iter)
+            
+            treeStore = {}
+            
             for parent in self.confluence.getPages(model[row][1]):
-                piter = self.treestore.append(parentIter, (parent.title, parent.id, 'isPage'))
+                if parent.parentId != "0":
+                    treeStore.setdefault(parent.parentId,[]).append((parent.title, parent.id, 'isPage'))
+                else:
+                    treeStore.setdefault('root',[]).append((parent.title, parent.id, 'isPage'))
+                
+            ids = treeStore.keys()
+            ids.sort()
+            
+            roots = {}
+            
+            for i in treeStore['root']:
+                roots[i[1]] = self.treestore.append(parentIter, (i[0], i[1], i[2]))
+            
+            finished = False
+            while finished == False:
+                for id in ids:
+                    if treeStore.has_key(id) and id == "root":
+                        del(treeStore[id])
+                        continue
+                    
+                    if roots.has_key(id) and treeStore.has_key(id):
+                        for i in treeStore[id]:
+                            #print i
+                            roots[i[1]] = self.treestore.append(roots[id], (i[0], i[1], i[2]))
+                            treeStore[id].remove(i)
+                            
+                    if treeStore.has_key(id) and len(treeStore[id]) == 0:
+                        del(treeStore[id])
+                if len(treeStore) is 0:
+                    finished = True
         elif model[row][2] == 'isPage':
             page = self.confluence.getPage(model[row][1])
             tf = tempfile.NamedTemporaryFile(delete=False)
             tf.seek(0)
             tf.write(page.content)
-            self.geditwindow.create_tab_from_uri('file://' + tf.name, None, 0, False, True)
-            self.tabs = ['file://' + tf.name,]
-        return
-        
-        spaceKey = model[row][1]
-        
-        #self.confluence.getSpace(spaceKey)
-        
-        with tempfile.TemporaryFile() as f:
-            f.write(text)
-            self.geditwindow.create_tab_from_uri(f.name, None, None, False, True)
-        print text
+            tab = self.geditwindow.create_tab_from_uri('file://' + tf.name, None, 0, False, True)
+            self.tabs['file://' + tf.name] = page
+            
+            entry = gtk.Entry()
+            #allow the user to press enter to do ok
+            #entry.connect("activate", responseToDialog, dialog, gtk.RESPONSE_OK)
+            #create a horizontal box to pack the entry and a label
+            hbox = gtk.HBox()
+            hbox.pack_start(gtk.Label("Tags:"), False, True, 0)
+            hbox.pack_end(entry)
+            #some secondary text
+            #add it and show it
+            tab.pack_end(hbox, True, True, 0)
+            tab.show_all()
     
     def active_tab_state_changed(self, window):
         tab = window.get_active_tab()
         path = tab.get_document().get_uri()
         
-        print path
-        print self.tabs
-        if tab and tab.get_state() == gedit.TAB_STATE_SAVING and path in self.tabs:
-            print tab.get_state()
-        
+        if tab and tab.get_state() == gedit.TAB_STATE_SAVING and self.tabs.has_key(path):
+            print "Store page"
+            self.tabs[path].content = tab.get_document().get_text(tab.get_document().get_start_iter(), tab.get_document().get_end_iter())
+            
+            updateOptions = confluencerpclib.PageUpdateOptions()
+            updateOptions.versionComment = ''
+            updateOptions.minorEdit = True
+            
+            self.tabs[path] = self.confluence.updatePage(self.tabs[path], updateOptions)
+            #self.tabs[path].version += 1
+
+    def tab_removed(self, window, tab):
+        path = tab.get_document().get_uri()
+
+        if self.tabs.has_key(path):
+            os.remove(tab.get_document().get_uri_for_display())
+            del self.tabs[path]
+
     def loadConfluenceBrowser(self, window):
         self.options = options.options()
         panel = window.get_side_panel()
@@ -116,7 +172,7 @@ class ConfluenceBrowser(gtk.VBox):
 
         image.set_from_pixbuf(pixbuf)
 
-        self.confluence = Confluence(self.options.url, True)
+        self.confluence = confluencerpclib.Confluence(self.options.url, True)
         self.confluence.login(self.options.username, self.options.password)
         
         self.treestore = gtk.TreeStore(str, str, str)
@@ -134,3 +190,85 @@ class ConfluenceBrowser(gtk.VBox):
 
         # store per window data in the window object
         windowdata = {"ConfluenceBrowser": self}
+    
+    def add_page(self, menuitem, spaceKey, parentPageId=None):
+        dialog = gtk.MessageDialog(
+            None,
+            gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            gtk.MESSAGE_QUESTION,
+            gtk.BUTTONS_OK,
+            None)
+        dialog.set_markup('Please enter the title of the page:')
+        #create the text input field
+        entry = gtk.Entry()
+        #allow the user to press enter to do ok
+        #entry.connect("activate", responseToDialog, dialog, gtk.RESPONSE_OK)
+        #create a horizontal box to pack the entry and a label
+        hbox = gtk.HBox()
+        hbox.pack_start(gtk.Label("Title:"), False, 5, 5)
+        hbox.pack_end(entry)
+        #some secondary text
+        #add it and show it
+        dialog.vbox.pack_end(hbox, True, True, 0)
+        dialog.show_all()
+        #go go go
+        dialog.run()
+        title = entry.get_text()
+        
+        if title.strip() == "":
+            dialog.destroy()
+            self.add_page(menuitem, spaceKey, parentPageId)
+            return
+        
+        dialog.destroy()
+        
+        page = confluencerpclib.Page()
+        page.space = spaceKey
+        page.title = title
+        page.content = 'New Page added'
+
+        if parentPageId is not None:
+            page.parentId = parentPageId
+        
+        page = self.confluence.storePage(page)
+        tf = tempfile.NamedTemporaryFile(delete=False)
+        tf.seek(0)
+        tf.write(page.content)
+        tab = self.geditwindow.create_tab_from_uri('file://' + tf.name, None, 0, False, True)
+        self.tabs['file://' + tf.name] = page
+
+    def reload_selected_item(self, menuitem, model):
+        model = self.browser.get_model()
+
+    def __onClick(self, treeview, event):
+        if event.button == 3:
+            x, y = int(event.x), int(event.y)
+            pthinfo = treeview.get_path_at_pos(x, y)
+            if pthinfo is None: return
+            path, col, cellx, celly = pthinfo
+            
+            model = self.browser.get_model()
+            menu = gtk.Menu()
+            
+            m = gtk.MenuItem('Reload selected item')
+            menu.append(m)
+            m.show()
+            m.connect("activate", self.reload_selected_item, path)
+            
+            if model[path][2] == 'isSpace':
+                m = gtk.MenuItem('Add Page')
+                menu.append(m)
+                m.show()
+                m.connect("activate", self.add_page, model[path][1])
+              
+            if model[path][2] == 'isPage':
+                m = gtk.MenuItem('Add Subpage')
+                menu.append(m)
+                m.show()
+                m.connect("activate", self.add_page, model[path[0]][1], model[path][1])
+
+            m = gtk.SeparatorMenuItem()
+            m.show()
+            menu.append(m)
+            
+            menu.popup( None, None, None, event.button, event.time)
