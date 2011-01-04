@@ -6,6 +6,8 @@ import os
 import sys
 import tempfile
 import urllib
+import webbrowser
+import webkit
 
 import confluencerpclib
 #import Confluence, Page, PageUpdateOptions
@@ -140,10 +142,13 @@ class ConfluenceBrowser(gtk.VBox):
             
             tagsMerged = []
             
-            for i in tags:
-                tagsMerged += [i.name]
+            hboxOldTags = gtk.HBox()
+            hboxOldTags.pack_start(gtk.Label('Existing tags:'), False, False, 2)
             
-            tagsEntry.set_text(' '.join(tagsMerged))
+            for i in tags:
+                tag = gtk.Button(label=i.name)
+                tag.connect("clicked", self.tagClickDelete, i.id, page.id)
+                hboxOldTags.pack_start(tag, False, False, 2)
             
             hboxTitle = gtk.HBox()
             hboxTitle.pack_start(gtk.Label("Title:"), False, False, 2)
@@ -153,6 +158,7 @@ class ConfluenceBrowser(gtk.VBox):
             hboxTags.pack_start(gtk.Label("Tags:"), False, False, 2)
             hboxTags.pack_end(tagsEntry)
 
+            tab.pack_end(hboxOldTags, False, False, 2)
             tab.pack_end(hboxTags, False, False, 2)
             tab.pack_end(hboxTitle, False, False, 2)
             tab.show_all()
@@ -162,10 +168,10 @@ class ConfluenceBrowser(gtk.VBox):
         path = tab.get_document().get_uri()
         
         if tab and tab.get_state() == gedit.TAB_STATE_SAVING and self.tabs.has_key(path):
-            print "Store page"
-            for i in tab.get_children():
-                print i.get_children()[1::2].get_text()
-            return
+            title = tab.get_children()[0].get_children()[1].get_text()
+            tags = tab.get_children()[1].get_children()[1].get_text()
+
+            self.tabs[path].title = title
             self.tabs[path].content = tab.get_document().get_text(tab.get_document().get_start_iter(), tab.get_document().get_end_iter())
             
             updateOptions = confluencerpclib.PageUpdateOptions()
@@ -173,6 +179,9 @@ class ConfluenceBrowser(gtk.VBox):
             updateOptions.minorEdit = True
             
             self.tabs[path] = self.confluence.updatePage(self.tabs[path], updateOptions)
+            
+            if tags.strip() != "":
+                self.confluence.addLabelByName(tags, self.tabs[path].id)
 
     def tab_removed(self, window, tab):
         path = tab.get_document().get_uri()
@@ -180,6 +189,10 @@ class ConfluenceBrowser(gtk.VBox):
         if self.tabs.has_key(path):
             os.remove(tab.get_document().get_uri_for_display())
             del self.tabs[path]
+
+    def tagClickDelete(self, widget, labelId, objectId):
+        self.confluence.removeLabelById(labelId, objectId)
+        widget.destroy()
 
     def loadConfluenceBrowser(self, window):
         self.options = options.options()
@@ -214,7 +227,7 @@ class ConfluenceBrowser(gtk.VBox):
         # store per window data in the window object
         windowdata = {"ConfluenceBrowser": self}
     
-    def add_page(self, menuitem, spaceKey, parentPageId=None):
+    def _addPage(self, menuitem, spaceKey, parentPageId=None):
         dialog = gtk.MessageDialog(
             None,
             gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
@@ -260,14 +273,47 @@ class ConfluenceBrowser(gtk.VBox):
             tab = self.geditwindow.create_tab_from_uri('file://' + tf.name, None, 0, False, True)
             self.tabs['file://' + tf.name] = page
 
-    def reload_selected_item(self, menuitem, model):
+    def _reloadSelectedItem(self, menuitem, model):
         model = self.browser.get_model()
     
     def _deletePage(self, menuitem, model):
         model = self.browser.get_model()
     
-    def _getComments(self, menuitem, model):
-        model = self.browser.get_model()
+    def _getComments(self, menuitem, spaceKey, pageId):
+        comments = self.confluence.getComments(pageId)
+        htmlString = ''
+        
+        if not comments:
+            htmlString = '<p>No comments on this page</p>'
+        
+        for i in comments:
+            htmlString += '<div>'
+
+            user = self.confluence.getUser(i.creator)
+            htmlString += '<p>'+user.fullname+' says:</p>'
+            htmlString += '<p>'+i.content+'</p>'
+            htmlString += '</div>'
+        
+        webView = gtk.Window()
+        browser = webkit.WebView()
+
+        browser.load_html_string(htmlString, "file:///")
+
+        box = gtk.VBox(homogeneous=False, spacing=0)
+        webView.add(box)
+        
+        box.pack_start(browser, expand=True, fill=True, padding=0)
+
+        webView.set_default_size(800, 600)
+        webView.show_all()
+    
+    def _getAttachments(self, menuitem, spaceKey, pageId):
+        pass
+
+    def _openInBrowser(self, menuitem, spaceKey, pageId):
+        page = self.confluence.getPage(pageId)
+        webbrowser.open(page.url)
+        return
 
     def __onClick(self, treeview, event):
         if event.button == 3:
@@ -282,19 +328,19 @@ class ConfluenceBrowser(gtk.VBox):
             m = gtk.MenuItem('Reload selected item')
             menu.append(m)
             m.show()
-            m.connect("activate", self.reload_selected_item, path)
+            m.connect("activate", self._reloadSelectedItem, path)
             
             if model[path][2] == 'isSpace':
                 m = gtk.MenuItem('Add page')
                 menu.append(m)
                 m.show()
-                m.connect("activate", self.add_page, model[path][1])
+                m.connect("activate", self._addPage, model[path][1])
               
             if model[path][2] == 'isPage':
                 m = gtk.MenuItem('Add page')
                 menu.append(m)
                 m.show()
-                m.connect("activate", self.add_page, model[path[0]][1], model[path][1])
+                m.connect("activate", self._addPage, model[path[0]][1], model[path][1])
                 
                 m = gtk.MenuItem('Delete page')
                 menu.append(m)
@@ -309,5 +355,19 @@ class ConfluenceBrowser(gtk.VBox):
                 menu.append(m)
                 m.show()
                 m.connect("activate", self._getComments, model[path[0]][1], model[path][1])
+                
+                m = gtk.MenuItem('Show attachments')
+                menu.append(m)
+                m.show()
+                m.connect("activate", self._getAttachments, model[path[0]][1], model[path][1])
+                
+                m = gtk.SeparatorMenuItem()
+                m.show()
+                menu.append(m)
+                
+                m = gtk.MenuItem('Open in browser')
+                menu.append(m)
+                m.show()
+                m.connect("activate", self._openInBrowser, model[path[0]][1], model[path][1])
             
             menu.popup( None, None, None, event.button, event.time)
