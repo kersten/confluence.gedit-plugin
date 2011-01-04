@@ -5,6 +5,7 @@ import options
 import os
 import sys
 import tempfile
+import urllib
 
 import confluencerpclib
 #import Confluence, Page, PageUpdateOptions
@@ -129,24 +130,31 @@ class ConfluenceBrowser(gtk.VBox):
             self.tabs['file://' + tf.name] = page
             
             title = gtk.Entry()
-            
+            title.set_name('title')
             title.set_text(page.title);
             
-            tags = gtk.Entry()
-            #allow the user to press enter to do ok
-            #entry.connect("activate", responseToDialog, dialog, gtk.RESPONSE_OK)
-            #create a horizontal box to pack the entry and a label
+            tags = self.confluence.getLabelsById(page.id)
+            
+            tagsEntry = gtk.Entry()
+            tagsEntry.set_name('tags')
+            
+            tagsMerged = []
+            
+            for i in tags:
+                tagsMerged += [i.name]
+            
+            tagsEntry.set_text(' '.join(tagsMerged))
+            
             hboxTitle = gtk.HBox()
             hboxTitle.pack_start(gtk.Label("Title:"), False, False, 2)
             hboxTitle.pack_end(title)
             
             hboxTags = gtk.HBox()
             hboxTags.pack_start(gtk.Label("Tags:"), False, False, 2)
-            hboxTags.pack_end(tags)
-            #some secondary text
-            #add it and show it
-            tab.pack_end(hboxTags, False, False, 0)
-            tab.pack_end(hboxTitle, False, False, 0)
+            hboxTags.pack_end(tagsEntry)
+
+            tab.pack_end(hboxTags, False, False, 2)
+            tab.pack_end(hboxTitle, False, False, 2)
             tab.show_all()
     
     def active_tab_state_changed(self, window):
@@ -155,6 +163,9 @@ class ConfluenceBrowser(gtk.VBox):
         
         if tab and tab.get_state() == gedit.TAB_STATE_SAVING and self.tabs.has_key(path):
             print "Store page"
+            for i in tab.get_children():
+                print i.get_children()[1::2].get_text()
+            return
             self.tabs[path].content = tab.get_document().get_text(tab.get_document().get_start_iter(), tab.get_document().get_end_iter())
             
             updateOptions = confluencerpclib.PageUpdateOptions()
@@ -162,7 +173,6 @@ class ConfluenceBrowser(gtk.VBox):
             updateOptions.minorEdit = True
             
             self.tabs[path] = self.confluence.updatePage(self.tabs[path], updateOptions)
-            #self.tabs[path].version += 1
 
     def tab_removed(self, window, tab):
         path = tab.get_document().get_uri()
@@ -176,11 +186,14 @@ class ConfluenceBrowser(gtk.VBox):
         panel = window.get_side_panel()
         image = gtk.Image()
 
-        filename = os.path.join(sys.path[0], "confluence", "pixmaps",
-                                "confluence.png")
-        pixbuf = gtk.gdk.pixbuf_new_from_file(filename)
-
+        f = urllib.urlopen(self.options.url.replace('/rpc/xmlrpc', '/favicon.ico'))
+        data = f.read()
+        pbl = gtk.gdk.PixbufLoader()
+        pbl.write(data)
+        pixbuf = pbl.get_pixbuf()
+        pbl.close()
         image.set_from_pixbuf(pixbuf)
+        
 
         self.confluence = confluencerpclib.Confluence(self.options.url, True)
         self.confluence.login(self.options.username, self.options.password)
