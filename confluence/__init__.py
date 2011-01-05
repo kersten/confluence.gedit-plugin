@@ -4,7 +4,7 @@ import options
 import os
 import sys
 
-from confluencerpclib import Confluence
+import confluencerpclib
 from confluencewidget import ConfluenceBrowser
 
 
@@ -20,20 +20,13 @@ class confluencePluginPlugin(gedit.Plugin):
         return True
 
     def activate(self, window):
-        self.options = options.options()
-        #options.singleton().confluenceLogin()
-        #print confluenceApi.singleton().getSpaces()
-        #print confluenceApi.singleton().getPages('SupportDaphne')
-        #print confluenceApi.singleton().getPageById('29458504')
-        #self.confluence = Confluence(self.options.url, True)
-        #self.confluence.login(self.options.username, self.options.password)
-
-        #print self.confluence.token
-        #self.confluence.getPage('29458504')
         self.confluencewidget = ConfluenceBrowser(window)
+        self.options = options.options(window, self.confluencewidget)
 
         if self.options.loginPassed is True:
-            self.confluencewidget.loadConfluenceBrowser(window)
+            self.confluence = confluencerpclib.Confluence(self.options.url, True)
+            self.confluence.login(self.options.username, self.options.password)
+            self.confluencewidget.loadConfluenceBrowser(window, self.confluence)
         pass
 
     def deactivate(self, window):
@@ -47,3 +40,4 @@ class confluencePluginPlugin(gedit.Plugin):
     def unloadConfluenceBrowser(self, window):
         panel = window.get_side_panel()
         panel.remove_item(self.confluencewidget)
+        self.confluence.logout()

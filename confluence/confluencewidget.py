@@ -1,7 +1,6 @@
 import gtk
 import gobject
 import gedit
-import options
 import os
 import sys
 import tempfile
@@ -10,6 +9,7 @@ import webbrowser
 import webkit
 
 import confluencerpclib
+import options
 #import Confluence, Page, PageUpdateOptions
 
 
@@ -52,9 +52,25 @@ class ConfluenceBrowser(gtk.VBox):
         sw = gtk.ScrolledWindow()
         sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         sw.set_shadow_type(gtk.SHADOW_IN)
+        
+        TARGETS = [
+            ('text/plain', 0, 1),
+            ('TEXT', 0, 2),
+            ('STRING', 0, 3),
+            ]
+        
         self.browser = gtk.TreeView()
         self.browser.set_headers_visible(False)
+        
+        self.browser.enable_model_drag_source(gtk.gdk.BUTTON1_MASK,
+                                                TARGETS,
+                                                gtk.gdk.ACTION_DEFAULT|
+                                                gtk.gdk.ACTION_MOVE)
+        self.browser.enable_model_drag_dest(TARGETS,
+                                            gtk.gdk.ACTION_DEFAULT)
+        
         sw.add(self.browser)
+        
         self.browser.connect("button_press_event", self.__onClick)
 
         self.pack_start(sw)
@@ -102,7 +118,7 @@ class ConfluenceBrowser(gtk.VBox):
             ids.sort()
             
             roots = {}
-            
+
             for i in treeStore['root']:
                 roots[i[1]] = self.treestore.append(parentIter, (i[0], i[1], i[2]))
             
@@ -124,6 +140,7 @@ class ConfluenceBrowser(gtk.VBox):
                 if len(treeStore) is 0:
                     finished = True
         elif model[row][2] == 'isPage':
+            #TODO: Check permissions before opening page
             page = self.confluence.getPage(model[row][1])
             tf = tempfile.NamedTemporaryFile(delete=False)
             tf.seek(0)
@@ -178,7 +195,12 @@ class ConfluenceBrowser(gtk.VBox):
             updateOptions.versionComment = ''
             updateOptions.minorEdit = True
             
-            self.tabs[path] = self.confluence.updatePage(self.tabs[path], updateOptions)
+            try:
+                self.tabs[path] = self.confluence.updatePage(self.tabs[path], updateOptions)
+            except Exception, err:
+                if err.__str__().find('InvalidSessionException'):
+                    self.confluence.login(self.options.username, self.options.password)
+                    self.tabs[path] = self.confluence.updatePage(self.tabs[path], updateOptions)
             
             if tags.strip() != "":
                 self.confluence.addLabelByName(tags, self.tabs[path].id)
@@ -194,7 +216,7 @@ class ConfluenceBrowser(gtk.VBox):
         self.confluence.removeLabelById(labelId, objectId)
         widget.destroy()
 
-    def loadConfluenceBrowser(self, window):
+    def loadConfluenceBrowser(self, window, confluence):
         self.options = options.options()
         panel = window.get_side_panel()
         image = gtk.Image()
@@ -207,11 +229,9 @@ class ConfluenceBrowser(gtk.VBox):
         pbl.close()
         image.set_from_pixbuf(pixbuf)
         
-
-        self.confluence = confluencerpclib.Confluence(self.options.url, True)
-        self.confluence.login(self.options.username, self.options.password)
-        
         self.treestore = gtk.TreeStore(str, str, str)
+        
+        self.confluence = confluence
 
          # we'll add some data now - 4 rows with 3 child rows each
         for parent in self.confluence.getSpaces():
@@ -285,13 +305,24 @@ class ConfluenceBrowser(gtk.VBox):
         
         if not comments:
             htmlString = '<p>No comments on this page</p>'
-        
+        else:
+            print os.path.join(os.path.realpath(os.path.dirname(__file__)), 'css/comments.css')
+            f = open(os.path.join(os.path.realpath(os.path.dirname(__file__)), 'css/comments.css'), 'r')
+            htmlString += '<style>'+f.read()+'</style>'
+            htmlString += '<div class="pageSection" id="comments-section">'
+            htmlString += '<ol id="page-comments" class="comment-threads top-level">'
+
         for i in comments:
-            htmlString += '<div>'
+            htmlString += '<li class="comment-thread" id="comment-thread-'+i.id+'"><div id="comment-'+i.id+'" class="comment">'
+            htmlString += '<div class="comment-body"><div class="comment-content wiki-content">'
 
             user = self.confluence.getUser(i.creator)
-            htmlString += '<p>'+user.fullname+' says:</p>'
-            htmlString += '<p>'+i.content+'</p>'
+            #htmlString += '<p>'+user.fullname+' says:</p>'
+            htmlString += i.content
+            htmlString += '</div></div></div></li>'
+        
+        if comments:
+            htmlString += '</ol>'
             htmlString += '</div>'
         
         webView = gtk.Window()

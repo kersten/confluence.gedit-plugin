@@ -2,147 +2,6 @@
 <interface>
   <requires lib="gtk+" version="2.16"/>
   <!-- interface-naming-policy project-wide -->
-  <object class="GtkDialog" id="_confluencePluginConfigureDialog">
-    <property name="border_width">5</property>
-    <property name="title" translatable="yes">Conluence Plugin Properties</property>
-    <property name="resizable">False</property>
-    <property name="window_position">center-on-parent</property>
-    <property name="destroy_with_parent">True</property>
-    <property name="type_hint">normal</property>
-    <child internal-child="vbox">
-      <object class="GtkVBox" id="dialog-vbox1">
-        <property name="visible">True</property>
-        <property name="spacing">2</property>
-        <child>
-          <object class="GtkFixed" id="fixed1">
-            <property name="visible">True</property>
-            <child>
-              <object class="GtkEntry" id="_loginUsername">
-                <property name="width_request">158</property>
-                <property name="height_request">20</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="invisible_char">●</property>
-              </object>
-              <packing>
-                <property name="x">145</property>
-                <property name="y">21</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="_loginPassword">
-                <property name="width_request">158</property>
-                <property name="height_request">20</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="visibility">False</property>
-                <property name="invisible_char">●</property>
-                <property name="truncate_multiline">True</property>
-              </object>
-              <packing>
-                <property name="x">145</property>
-                <property name="y">46</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="label1">
-                <property name="width_request">100</property>
-                <property name="height_request">20</property>
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">Login</property>
-              </object>
-              <packing>
-                <property name="x">35</property>
-                <property name="y">20</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="label2">
-                <property name="width_request">100</property>
-                <property name="height_request">20</property>
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">Password</property>
-              </object>
-              <packing>
-                <property name="x">35</property>
-                <property name="y">44</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="label3">
-                <property name="width_request">100</property>
-                <property name="height_request">20</property>
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">URL</property>
-              </object>
-              <packing>
-                <property name="x">36</property>
-                <property name="y">69</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkEntry" id="_loginURL">
-                <property name="width_request">157</property>
-                <property name="height_request">20</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="invisible_char">●</property>
-              </object>
-              <packing>
-                <property name="x">146</property>
-                <property name="y">70</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child internal-child="action_area">
-          <object class="GtkHButtonBox" id="dialog-action_area1">
-            <property name="visible">True</property>
-            <property name="layout_style">end</property>
-            <child>
-              <object class="GtkButton" id="button1">
-                <property name="label" translatable="yes">button</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="_closeButton">
-                <property name="label" translatable="yes">Save</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <signal name="clicked" handler="on_closeButton_clicked"/>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="pack_type">end</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-    <action-widgets>
-      <action-widget response="0">button1</action-widget>
-      <action-widget response="0">_closeButton</action-widget>
-    </action-widgets>
-  </object>
   <object class="GtkDialog" id="confluencePluginConfigureDialog">
     <property name="border_width">5</property>
     <property name="type_hint">normal</property>
@@ -172,6 +31,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="invisible_char">●</property>
+                    <signal name="changed" handler="on_loginUsername_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="position">1</property>
@@ -203,6 +63,7 @@
                     <property name="can_focus">True</property>
                     <property name="visibility">False</property>
                     <property name="invisible_char">●</property>
+                    <signal name="changed" handler="on_loginPassword_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="position">1</property>
@@ -233,6 +94,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="invisible_char">●</property>
+                    <signal name="changed" handler="on_loginURL_changed" swapped="no"/>
                   </object>
                   <packing>
                     <property name="position">1</property>
@@ -254,12 +116,13 @@
             <property name="visible">True</property>
             <property name="layout_style">end</property>
             <child>
-              <object class="GtkButton" id="testButton">
-                <property name="label" translatable="yes">Test</property>
+              <object class="GtkButton" id="removeCredentials">
+                <property name="label" translatable="yes">Reset</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <signal name="clicked" handler="on_testButton_clicked"/>
+                <property name="use_action_appearance">False</property>
+                <signal name="clicked" handler="on_removeCredentials_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -273,12 +136,26 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <signal name="clicked" handler="on_closeButton_clicked"/>
+                <signal name="clicked" handler="on_closeButton_clicked" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">False</property>
                 <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="testButton">
+                <property name="label" translatable="yes">Test</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="on_testButton_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </object>
@@ -291,8 +168,9 @@
       </object>
     </child>
     <action-widgets>
-      <action-widget response="0">testButton</action-widget>
+      <action-widget response="0">removeCredentials</action-widget>
       <action-widget response="0">closeButton</action-widget>
+      <action-widget response="0">testButton</action-widget>
     </action-widgets>
   </object>
 </interface>
