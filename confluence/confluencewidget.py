@@ -241,16 +241,24 @@ class ConfluenceBrowser(gtk.VBox):
 
             if parentPageId is not None:
                 newPage.parentId = parentPageId
+            else:
+                del newPage.parentId
             
-            newPage = self.confluence.storePage(newPage)
-            loadedPage = page.Page(self.confluence).openPage(newPage.id, self.geditwindow)
+            try:
+                storedPage = self.confluence.storePage(newPage)
+            except Exception, err:
+                if err.__str__().find('InvalidSessionException'):
+                    self.confluence.login(self.options.username, self.options.password)
+                    storedPage = self.confluence.storePage(newPage)
+
+            loadedPage = page.Page(self.confluence).openPage(storedPage.id, self.geditwindow)
             self.tabs[loadedPage[0]] = loadedPage[1]
 
     def _reloadSelectedItem(self, menuitem, model):
         model = self.browser.get_model()
     
-    def _deletePage(self, menuitem, model):
-        model = self.browser.get_model()
+    def _removePage(self, menuitem, pageId):
+        return self.confluence.removePage(pageId)
     
     def _getComments(self, menuitem, spaceKey, pageId):
         comments = self.confluence.getComments(pageId)
@@ -333,7 +341,7 @@ class ConfluenceBrowser(gtk.VBox):
                 m = gtk.MenuItem('Remove page')
                 menu.append(m)
                 m.show()
-                m.connect("activate", self._deletePage, model[path[0]][1], model[path][1])
+                m.connect("activate", self._removePage, model[path][1])
                 
                 m = gtk.SeparatorMenuItem()
                 m.show()
