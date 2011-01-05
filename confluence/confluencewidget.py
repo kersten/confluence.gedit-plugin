@@ -100,11 +100,10 @@ class ConfluenceBrowser(gtk.VBox):
             #if model[parentIter].has_children():
             #    for i in parentIter.get_children():
             #        unset(parentInter[i])
-            
-            iter = self.treestore.iter_children(parentIter)
-            while iter:
-                print iter
-                self.treestore.remove(iter)
+            children = self.treestore.iter_children(parentIter)
+            if children is not None:
+                while self.treestore.iter_is_valid(children):
+                    self.treestore.remove(children)
             
             treeStore = {}
             
