@@ -8,6 +8,8 @@ Donations
 =========
 Please feel free to donate if you like this software. Click on the following link to donate:
 
+[![Flattr this](http://api.flattr.com/button/flattr-badge-large.png)](http://flattr.com/thing/112499/confluence-gedit-plugin)
+
 [![Donate](http://pledgie.com/campaigns/14263.png)](http://pledgie.com/campaigns/14263)
 
 License
