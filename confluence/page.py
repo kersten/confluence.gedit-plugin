@@ -49,6 +49,10 @@ class Page():
 
         return ['file://' + tf.name, page]
 
+    def _remove(self, menuitem, pageId, path):
+        self.confluence.removePage(pageId)
+        
+
     def _clickTagDelete(self, widget, labelId, objectId):
         self.confluence.removeLabelById(labelId, objectId)
         widget.destroy()

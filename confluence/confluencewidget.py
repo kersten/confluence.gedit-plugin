@@ -257,9 +257,6 @@ class ConfluenceBrowser(gtk.VBox):
     def _reloadSelectedItem(self, menuitem, model):
         model = self.browser.get_model()
     
-    def _removePage(self, menuitem, pageId):
-        return self.confluence.removePage(pageId)
-    
     def _getComments(self, menuitem, spaceKey, pageId):
         comments = self.confluence.getComments(pageId)
         htmlString = ''
@@ -302,7 +299,7 @@ class ConfluenceBrowser(gtk.VBox):
     def _getAttachments(self, menuitem, spaceKey, pageId):
         pass
 
-    def _openInBrowser(self, menuitem, spaceKey, pageId):
+    def _openInBrowser(self, menuitem, pageId):
         page = self.confluence.getPage(pageId)
         webbrowser.open(page.url)
         return
@@ -341,7 +338,7 @@ class ConfluenceBrowser(gtk.VBox):
                 m = gtk.MenuItem('Remove page')
                 menu.append(m)
                 m.show()
-                m.connect("activate", self._removePage, model[path][1])
+                m.connect("activate", page.Page(self.confluence)._remove, model[path][1], path)
                 
                 m = gtk.SeparatorMenuItem()
                 m.show()
@@ -364,6 +361,6 @@ class ConfluenceBrowser(gtk.VBox):
                 m = gtk.MenuItem('Open in browser')
                 menu.append(m)
                 m.show()
-                m.connect("activate", self._openInBrowser, model[path[0]][1], model[path][1])
+                m.connect("activate", self._openInBrowser, model[path][1])
             
             menu.popup( None, None, None, event.button, event.time)
