@@ -97,9 +97,6 @@ class ConfluenceBrowser(gtk.VBox):
         parentIter = model.get_iter(row)
         
         if model[row][2] == 'isSpace':
-            #if model[parentIter].has_children():
-            #    for i in parentIter.get_children():
-            #        unset(parentInter[i])
             children = self.treestore.iter_children(parentIter)
             if children is not None:
                 while self.treestore.iter_is_valid(children):
