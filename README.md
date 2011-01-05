@@ -1,3 +1,8 @@
+Dependencies
+============
+This package has the following dependecies:
+- confluencerpclib(https://github.com/kersten/confluencerpclib)
+
 Donations
 =========
 Please feel free to donate if you like this software. Click on the following link to donate:
