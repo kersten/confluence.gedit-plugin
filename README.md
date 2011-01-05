@@ -2,7 +2,7 @@ Dependencies
 ============
 This package has the following dependecies:
 
-* confluencerpclib(https://github.com/kersten/confluencerpclib)
+* [confluencerpclib](https://github.com/kersten/confluencerpclib)
 
 Donations
 =========
