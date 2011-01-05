@@ -7,7 +7,7 @@ class Page():
     def __init__(self, confluence):
         self.confluence = confluence
     
-    def openPage(self, pageId, geditWindow):
+    def open(self, pageId, geditWindow):
         # TODO: check permissions before opening page
         page = self.confluence.getPage(pageId)
         tf = tempfile.NamedTemporaryFile(delete=False)

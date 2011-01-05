@@ -137,7 +137,7 @@ class ConfluenceBrowser(gtk.VBox):
                 if len(treeStore) is 0:
                     finished = True
         elif model[row][2] == 'isPage':
-            loadedPage = page.Page(self.confluence).openPage(model[row][1], self.geditwindow)
+            loadedPage = page.Page(self.confluence).open(model[row][1], self.geditwindow)
             self.tabs[loadedPage[0]] = loadedPage[1]
     
     def active_tab_state_changed(self, window):
@@ -251,7 +251,7 @@ class ConfluenceBrowser(gtk.VBox):
                     self.confluence.login(self.options.username, self.options.password)
                     storedPage = self.confluence.storePage(newPage)
 
-            loadedPage = page.Page(self.confluence).openPage(storedPage.id, self.geditwindow)
+            loadedPage = page.Page(self.confluence).open(storedPage.id, self.geditwindow)
             self.tabs[loadedPage[0]] = loadedPage[1]
 
     def _reloadSelectedItem(self, menuitem, model):
