@@ -10,6 +10,7 @@ import webkit
 
 import confluencerpclib
 import options
+import page
 #import Confluence, Page, PageUpdateOptions
 
 
@@ -136,45 +137,8 @@ class ConfluenceBrowser(gtk.VBox):
                 if len(treeStore) is 0:
                     finished = True
         elif model[row][2] == 'isPage':
-            #TODO: Check permissions before opening page
-            page = self.confluence.getPage(model[row][1])
-            tf = tempfile.NamedTemporaryFile(delete=False)
-            tf.seek(0)
-            tf.write(page.content)
-            tab = self.geditwindow.create_tab_from_uri('file://' + tf.name, None, 0, False, True)
-            self.tabs['file://' + tf.name] = page
-            
-            title = gtk.Entry()
-            title.set_name('title')
-            title.set_text(page.title);
-            
-            tags = self.confluence.getLabelsById(page.id)
-            
-            tagsEntry = gtk.Entry()
-            tagsEntry.set_name('tags')
-            
-            tagsMerged = []
-            
-            hboxOldTags = gtk.HBox()
-            hboxOldTags.pack_start(gtk.Label('Existing tags:'), False, False, 2)
-            
-            for i in tags:
-                tag = gtk.Button(label=i.name)
-                tag.connect("clicked", self.tagClickDelete, i.id, page.id)
-                hboxOldTags.pack_start(tag, False, False, 2)
-            
-            hboxTitle = gtk.HBox()
-            hboxTitle.pack_start(gtk.Label("Title:"), False, False, 2)
-            hboxTitle.pack_end(title)
-            
-            hboxTags = gtk.HBox()
-            hboxTags.pack_start(gtk.Label("Tags:"), False, False, 2)
-            hboxTags.pack_end(tagsEntry)
-
-            tab.pack_end(hboxOldTags, False, False, 2)
-            tab.pack_end(hboxTags, False, False, 2)
-            tab.pack_end(hboxTitle, False, False, 2)
-            tab.show_all()
+            loadedPage = page.Page(self.confluence).openPage(model[row][1], self.geditwindow)
+            self.tabs[loadedPage[0]] = loadedPage[1]
     
     def active_tab_state_changed(self, window):
         tab = window.get_active_tab()
@@ -207,10 +171,6 @@ class ConfluenceBrowser(gtk.VBox):
         if self.tabs.has_key(path):
             os.remove(tab.get_document().get_uri_for_display())
             del self.tabs[path]
-
-    def tagClickDelete(self, widget, labelId, objectId):
-        self.confluence.removeLabelById(labelId, objectId)
-        widget.destroy()
 
     def loadConfluenceBrowser(self, window, confluence):
         self.options = options.options()
@@ -274,20 +234,17 @@ class ConfluenceBrowser(gtk.VBox):
         
         dialog.destroy()
         if title.strip() != "":
-            page = confluencerpclib.Page()
-            page.space = spaceKey
-            page.title = title
-            page.content = 'New Page added'
+            newPage = confluencerpclib.Page()
+            newPage.space = spaceKey
+            newPage.title = title
+            newPage.content = 'New Page added'
 
             if parentPageId is not None:
-                page.parentId = parentPageId
+                newPage.parentId = parentPageId
             
-            page = self.confluence.storePage(page)
-            tf = tempfile.NamedTemporaryFile(delete=False)
-            tf.seek(0)
-            tf.write(page.content)
-            tab = self.geditwindow.create_tab_from_uri('file://' + tf.name, None, 0, False, True)
-            self.tabs['file://' + tf.name] = page
+            newPage = self.confluence.storePage(newPage)
+            loadedPage = page.Page(self.confluence).openPage(newPage.id, self.geditwindow)
+            self.tabs[loadedPage[0]] = loadedPage[1]
 
     def _reloadSelectedItem(self, menuitem, model):
         model = self.browser.get_model()
@@ -352,24 +309,28 @@ class ConfluenceBrowser(gtk.VBox):
             model = self.browser.get_model()
             menu = gtk.Menu()
             
-            m = gtk.MenuItem('Reload selected item')
-            menu.append(m)
-            m.show()
-            m.connect("activate", self._reloadSelectedItem, path)
-            
             if model[path][2] == 'isSpace':
+                m = gtk.MenuItem('Reload selected item')
+                menu.append(m)
+                m.show()
+                m.connect("activate", self._reloadSelectedItem, path)
+                
+                m = gtk.SeparatorMenuItem()
+                m.show()
+                menu.append(m)
+                
                 m = gtk.MenuItem('Add page')
                 menu.append(m)
                 m.show()
                 m.connect("activate", self._addPage, model[path][1])
               
             if model[path][2] == 'isPage':
-                m = gtk.MenuItem('Add page')
+                m = gtk.MenuItem('Create page')
                 menu.append(m)
                 m.show()
                 m.connect("activate", self._addPage, model[path[0]][1], model[path][1])
                 
-                m = gtk.MenuItem('Delete page')
+                m = gtk.MenuItem('Remove page')
                 menu.append(m)
                 m.show()
                 m.connect("activate", self._deletePage, model[path[0]][1], model[path][1])
@@ -378,7 +339,7 @@ class ConfluenceBrowser(gtk.VBox):
                 m.show()
                 menu.append(m)
                 
-                m = gtk.MenuItem('Get comments')
+                m = gtk.MenuItem('Read comments')
                 menu.append(m)
                 m.show()
                 m.connect("activate", self._getComments, model[path[0]][1], model[path][1])
