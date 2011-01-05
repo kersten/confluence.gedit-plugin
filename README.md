@@ -1,6 +1,7 @@
 Donations
 =========
 Please feel free to donate if you like this software. Click on the following link to donate:
+
 [![Donate](http://pledgie.com/campaigns/14263.png)](http://pledgie.com/campaigns/14263)
 
 License
