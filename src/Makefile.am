@@ -1,9 +1,11 @@
+SUBDIRS = confluence
+
 NULL =
 
 plugindir = $(GEDIT_PLUGIN_DIR)
 
 plugin_in_files = \
-	gdpbzr.gedit-plugin.desktop.in \
+	confluence.gedit-plugin.desktop.in \
 	$(NULL)
 
 %.gedit-plugin: %.gedit-plugin.desktop.in \
