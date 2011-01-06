@@ -2,8 +2,8 @@
 Loader=python
 Module=confluence
 IAge=2
-Name=Confluence Editor
-Description=An editor to handle cotentes remotly
+_Name=Confluence Editor
+_Description=An editor to handle cotentes remotly
 Authors=Kersten Burkhardt <burkhardt@gmail.com>
 Copyright=Copyright © 2011 Kersten Burkhardt <burkhardt@gmail.com>
 Website=http://www.gedit.org

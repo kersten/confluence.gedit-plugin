@@ -1,0 +1,30 @@
+NULL =
+
+plugindir = $(GEDIT_PLUGIN_DIR)
+
+plugin_PYTHON = \
+	attachments.py \
+	comments.py \
+	confluencewidget.py \
+	__init__.py \
+	options.py \
+	page.py \
+	$(NULL)
+
+plugin_in_files = \
+	gdpbzr.gedit-plugin.desktop.in \
+	$(NULL)
+
+%.gedit-plugin: %.gedit-plugin.desktop.in \
+	$(INTLTOOL_MERGE) $(wildcard $(top_srcdir)/po/*po); \
+	$(INTLTOOL_MERGE) $(top_srcdir)/po $< \
+	$@ -d -u -c $(top_builddir)/po/.intltool-merge-cache
+
+plugin_DATA = $(plugin_in_files:.gedit-plugin.desktop.in=.gedit-plugin)
+
+EXTRA_DIST = $(plugin_in_files)
+
+dist-hook:
+
+CLEANFILES = *.bak *.pyc *.pyo $(plugin_DATA)
+DISTCLEANFILES = *.bak *.pyc *.pyo $(plugin_DATA)

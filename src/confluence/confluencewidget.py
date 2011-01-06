@@ -37,18 +37,6 @@ class ConfluenceBrowser(gtk.VBox):
         self.history_pos = 0
         self.previousline = 0
 
-        #self.back = gtk.ToolButton(gtk.STOCK_GO_BACK)
-        #self.back.connect("clicked", self.history_back)
-        #self.back.set_sensitive(False)
-        #self.forward = gtk.ToolButton(gtk.STOCK_GO_FORWARD)
-        #self.forward.connect("clicked", self.history_forward)
-        #self.forward.set_sensitive(False)
-
-        #tb = gtk.Toolbar()
-        #tb.add(self.back)
-        #tb.add(self.forward)
-        #self.pack_start(tb,False,False)
-
         # add a treeview
         sw = gtk.ScrolledWindow()
         sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -84,16 +72,13 @@ class ConfluenceBrowser(gtk.VBox):
         self.column.pack_start(self.cellrendererpixbuf, True)
         self.column.add_attribute(self.cellrendererpixbuf, 'text', 0)
 
-        #self.crt = gtk.CellRendererText()
-        #self.column.pack_start(self.crt, False)
-
         # connect stuff
-        self.browser.connect("row-activated", self.on_row_activated)
-        self.geditwindow.connect("active-tab-state-changed", self.active_tab_state_changed)
-        self.geditwindow.connect("tab-removed", self.tab_removed)
+        self.browser.connect("row-activated", self._onRowActivated)
+        self.geditwindow.connect("active-tab-state-changed", self._onActiveTabStateChanged)
+        self.geditwindow.connect("tab-removed", self._onTabRemoved)
         self.show_all()
 
-    def on_row_activated(self, widget, row, col):
+    def _onRowActivated(self, widget, row, col):
         model = widget.get_model()
         parentIter = model.get_iter(row)
         
@@ -140,32 +125,12 @@ class ConfluenceBrowser(gtk.VBox):
             loadedPage = page.Page(self.confluence).open(model[row][1], self.geditwindow)
             self.tabs[loadedPage[0]] = loadedPage[1]
     
-    def active_tab_state_changed(self, window):
-        tab = window.get_active_tab()
-        path = tab.get_document().get_uri()
-        
-        if tab and tab.get_state() == gedit.TAB_STATE_SAVING and self.tabs.has_key(path):
-            title = tab.get_children()[0].get_children()[1].get_text()
-            tags = tab.get_children()[1].get_children()[1].get_text()
+    def _onActiveTabStateChanged(self, window):
+        print self.tabs
+        tabs = page.Page(self.confluence).save(window, self.tabs)
+        #self.tabs = tabs
 
-            self.tabs[path].title = title
-            self.tabs[path].content = tab.get_document().get_text(tab.get_document().get_start_iter(), tab.get_document().get_end_iter())
-            
-            updateOptions = confluencerpclib.PageUpdateOptions()
-            updateOptions.versionComment = ''
-            updateOptions.minorEdit = True
-            
-            try:
-                self.tabs[path] = self.confluence.updatePage(self.tabs[path], updateOptions)
-            except Exception, err:
-                if err.__str__().find('InvalidSessionException'):
-                    self.confluence.login(self.options.username, self.options.password)
-                    self.tabs[path] = self.confluence.updatePage(self.tabs[path], updateOptions)
-            
-            if tags.strip() != "":
-                self.confluence.addLabelByName(tags, self.tabs[path].id)
-
-    def tab_removed(self, window, tab):
+    def _onTabRemoved(self, window, tab):
         path = tab.get_document().get_uri()
 
         if self.tabs.has_key(path):
@@ -204,55 +169,13 @@ class ConfluenceBrowser(gtk.VBox):
         windowdata = {"ConfluenceBrowser": self}
     
     def _addPage(self, menuitem, spaceKey, parentPageId=None):
-        dialog = gtk.MessageDialog(
-            None,
-            gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            gtk.MESSAGE_QUESTION,
-            gtk.BUTTONS_OK,
-            None)
-        dialog.set_markup('Please enter the title of the page:')
-        #create the text input field
-        entry = gtk.Entry()
-        #allow the user to press enter to do ok
-        #entry.connect("activate", responseToDialog, dialog, gtk.RESPONSE_OK)
-        #create a horizontal box to pack the entry and a label
-        hbox = gtk.HBox()
-        hbox.pack_start(gtk.Label("Title:"), False, 5, 5)
-        hbox.pack_end(entry)
-        #some secondary text
-        #add it and show it
-        dialog.vbox.pack_end(hbox, True, True, 0)
-        dialog.show_all()
-        #go go go
-        dialog.run()
-        title = entry.get_text()
+        loadedPage = page.Page(self.confluence).add(menuitem, self.geditwindow, spaceKey, parentPageId)
         
-        if title.strip() == "" and gtk.RESPONSE_OK:
-            dialog.destroy()
-            self.add_page(menuitem, spaceKey, parentPageId)
+        if loadedPage is False:
+            self._addPage(menuitem, spaceKey, parentPageId)
             return
         
-        dialog.destroy()
-        if title.strip() != "":
-            newPage = confluencerpclib.Page()
-            newPage.space = spaceKey
-            newPage.title = title
-            newPage.content = 'New Page added'
-
-            if parentPageId is not None:
-                newPage.parentId = parentPageId
-            else:
-                del newPage.parentId
-            
-            try:
-                storedPage = self.confluence.storePage(newPage)
-            except Exception, err:
-                if err.__str__().find('InvalidSessionException'):
-                    self.confluence.login(self.options.username, self.options.password)
-                    storedPage = self.confluence.storePage(newPage)
-
-            loadedPage = page.Page(self.confluence).open(storedPage.id, self.geditwindow)
-            self.tabs[loadedPage[0]] = loadedPage[1]
+        self.tabs[loadedPage[0]] = loadedPage[1]
 
     def _reloadSelectedItem(self, menuitem, model):
         model = self.browser.get_model()
@@ -261,12 +184,13 @@ class ConfluenceBrowser(gtk.VBox):
         comments = self.confluence.getComments(pageId)
         htmlString = ''
         
+        print os.path.join(os.path.realpath(os.path.dirname(__file__)), 'css/comments.css')
+        f = open(os.path.join(os.path.realpath(os.path.dirname(__file__)), 'css/comments.css'), 'r').read()
+        htmlString += '<style>'+f+'</style>'
+        
         if not comments:
-            htmlString = '<p>No comments on this page</p>'
+            htmlString += '<div class="pageSection" id="comments-section"><p>No comments on this page</p></div>'
         else:
-            print os.path.join(os.path.realpath(os.path.dirname(__file__)), 'css/comments.css')
-            f = open(os.path.join(os.path.realpath(os.path.dirname(__file__)), 'css/comments.css'), 'r')
-            htmlString += '<style>'+f.read()+'</style>'
             htmlString += '<div class="pageSection" id="comments-section">'
             htmlString += '<ol id="page-comments" class="comment-threads top-level">'
 
@@ -282,6 +206,8 @@ class ConfluenceBrowser(gtk.VBox):
         if comments:
             htmlString += '</ol>'
             htmlString += '</div>'
+        
+        print htmlString
         
         webView = gtk.Window()
         browser = webkit.WebView()
@@ -338,7 +264,7 @@ class ConfluenceBrowser(gtk.VBox):
                 m = gtk.MenuItem('Remove page')
                 menu.append(m)
                 m.show()
-                m.connect("activate", page.Page(self.confluence)._remove, model[path][1], path)
+                m.connect("activate", page.Page(self.confluence).remove, model[path][1], path)
                 
                 m = gtk.SeparatorMenuItem()
                 m.show()
