@@ -2,12 +2,12 @@
 
 AC_PREREQ(2.61)
 
-m4_define(gdp_major_version, 0)
-m4_define(gdp_minor_version, 4)
-m4_define(gdp_micro_version, 3)
-m4_define(gdp_version, gdp_major_version.gdp_minor_version.gdp_micro_version)
+m4_define(gc_major_version, 0)
+m4_define(gc_minor_version, 1)
+m4_define(gc_micro_version, 0)
+m4_define(gc_version, gdp_major_version.gdp_minor_version.gdp_micro_version)
 
-AC_INIT(gedit-developer-plugins, gdp_version, sinzui.is@verizon.net)
+AC_INIT(gedit-confluence, gdp_version, kerstenk@gmail.com)
 AM_INIT_AUTOMAKE([1.9 -Wno-portability])
 IT_PROG_INTLTOOL([0.35.0])
 

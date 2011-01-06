@@ -2,15 +2,6 @@ NULL =
 
 plugindir = $(GEDIT_PLUGIN_DIR)
 
-plugin_PYTHON = \
-	attachments.py \
-	comments.py \
-	confluencewidget.py \
-	__init__.py \
-	options.py \
-	page.py \
-	$(NULL)
-
 plugin_in_files = \
 	gdpbzr.gedit-plugin.desktop.in \
 	$(NULL)

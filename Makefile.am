@@ -6,9 +6,8 @@ EXTRA_DIST = \
 	intltool-merge.in \
 	intltool-update.in \
 	intltool-extract.in	\
-	ChangeLog \
 	AUTHORS \
-	COPYING \
+	LICENSE \
 	HACKING \
 	INSTALL \
 	NEWS \
