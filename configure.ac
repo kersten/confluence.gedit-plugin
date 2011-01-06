@@ -30,7 +30,7 @@ AM_PATH_PYTHON
 # Gedit version.
 PKG_CHECK_MODULES(GEDIT, [
     pygtk-2.0 >= 2.14
-    gedit-2.20 >= 2.29.0
+    gedit-2.20 >= 2.30.0
 ])
 
 # i18n configuration.
