@@ -7,25 +7,28 @@ This package has the following dependecies:
 * [confluencerpclib](https://github.com/kersten/confluencerpclib)
 
 ### Installation ###
-To install the plugins for personal use (in your home directory), run the following commands from a terminal:
+To install the plugins for personal use (in your home directory), run the
+following commands from a terminal:
 
-./autogen.sh \
-./configure \
-make \
+./autogen.sh  
+./configure  
+make  
 make install
 
 To install the plugin in another location use:
 
-./autogen.sh \
-./configure --without-home --prefix=</path/to/location> \
-make \
+./autogen.sh  
+./configure --without-home --prefix=</path/to/location>  
+make  
 make install
 
-To install the plugins in the same location as the standard gedit plugins, set the prefix path to the same as gedit (usually /usr).
+To install the plugins in the same location as the standard gedit plugins, set
+the prefix path to the same as gedit (usually /usr).
 
 ### Donations ###
 
-Please feel free to donate if you like this software. Click on the following link to donate:
+Please feel free to donate if you like this software. Click on the following
+link to donate:
 
 [![Flattr this](http://api.flattr.com/button/flattr-badge-large.png)](http://flattr.com/thing/112499/confluence-gedit-plugin)
 
