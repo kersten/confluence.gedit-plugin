@@ -7,6 +7,7 @@ import tempfile
 import urllib
 import webbrowser
 import webkit
+from gettext import gettext as _
 
 import confluencerpclib
 import options
@@ -113,7 +114,6 @@ class ConfluenceBrowser(gtk.VBox):
                     
                     if roots.has_key(id) and treeStore.has_key(id):
                         for i in treeStore[id]:
-                            #print i
                             roots[i[1]] = self.treestore.append(roots[id], (i[0], i[1], i[2]))
                             treeStore[id].remove(i)
                             
@@ -126,7 +126,6 @@ class ConfluenceBrowser(gtk.VBox):
             self.tabs[loadedPage[0]] = loadedPage[1]
     
     def _onActiveTabStateChanged(self, window):
-        print self.tabs
         tabs = page.Page(self.confluence).save(window, self.tabs)
         #self.tabs = tabs
 
@@ -241,7 +240,7 @@ class ConfluenceBrowser(gtk.VBox):
             menu = gtk.Menu()
             
             if model[path][2] == 'isSpace':
-                m = gtk.MenuItem('Reload selected item')
+                m = gtk.MenuItem(_('Reload selected item'))
                 menu.append(m)
                 m.show()
                 m.connect("activate", self._reloadSelectedItem, path)
@@ -250,18 +249,18 @@ class ConfluenceBrowser(gtk.VBox):
                 m.show()
                 menu.append(m)
                 
-                m = gtk.MenuItem('Add page')
+                m = gtk.MenuItem(_('Create page'))
                 menu.append(m)
                 m.show()
                 m.connect("activate", self._addPage, model[path][1])
               
             if model[path][2] == 'isPage':
-                m = gtk.MenuItem('Create page')
+                m = gtk.MenuItem(_('Create page'))
                 menu.append(m)
                 m.show()
                 m.connect("activate", self._addPage, model[path[0]][1], model[path][1])
                 
-                m = gtk.MenuItem('Remove page')
+                m = gtk.MenuItem(_('Remove page'))
                 menu.append(m)
                 m.show()
                 m.connect("activate", page.Page(self.confluence).remove, model[path][1], path)
@@ -270,12 +269,12 @@ class ConfluenceBrowser(gtk.VBox):
                 m.show()
                 menu.append(m)
                 
-                m = gtk.MenuItem('Read comments')
+                m = gtk.MenuItem(_('Read comments'))
                 menu.append(m)
                 m.show()
                 m.connect("activate", self._getComments, model[path[0]][1], model[path][1])
                 
-                m = gtk.MenuItem('Show attachments')
+                m = gtk.MenuItem(_('Show attachments'))
                 menu.append(m)
                 m.show()
                 m.connect("activate", self._getAttachments, model[path[0]][1], model[path][1])
@@ -284,7 +283,7 @@ class ConfluenceBrowser(gtk.VBox):
                 m.show()
                 menu.append(m)
                 
-                m = gtk.MenuItem('Open in browser')
+                m = gtk.MenuItem(_('Open in browser'))
                 menu.append(m)
                 m.show()
                 m.connect("activate", self._openInBrowser, model[path][1])

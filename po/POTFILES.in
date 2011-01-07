@@ -2,3 +2,4 @@
 # Please keep this file sorted alphabetically.
 [encoding: UTF-8]
 src/confluence.gedit-plugin.desktop.in
+src/confluence/confluencewidget.py

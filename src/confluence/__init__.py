@@ -32,7 +32,9 @@ class confluencePluginPlugin(gedit.Plugin):
     def deactivate(self, window):
         if self.options.loginPassed is True:
             self.unloadConfluenceBrowser(window)
-        pass
+            panel = window.get_side_panel()
+            panel.remove_item(self.confluencewidget)
+            self.confluence.logout()
 
     def update_ui(self, window):
         pass

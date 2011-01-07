@@ -1,9 +1,12 @@
 import gtk
 import gedit
 import tempfile
+from gettext import gettext as _
 
 import confluencerpclib
 import options
+import attachments
+import comments
 
 
 class Page():
@@ -33,7 +36,7 @@ class Page():
         tagsMerged = []
         
         hboxOldTags = gtk.HBox()
-        hboxOldTags.pack_start(gtk.Label('Existing tags:'), False,
+        hboxOldTags.pack_start(gtk.Label(_('Existing labels:')), False,
                                False, 2)
         
         for i in tags:
@@ -42,16 +45,41 @@ class Page():
             hboxOldTags.pack_start(tag, False, False, 2)
         
         hboxTitle = gtk.HBox()
-        hboxTitle.pack_start(gtk.Label("Title:"), False, False, 2)
-        hboxTitle.pack_end(title)
+        hboxTitle.pack_start(gtk.Label(_('Title:')), False, False, 2)
+        hboxTitle.pack_start(title)
         
         hboxTags = gtk.HBox()
-        hboxTags.pack_start(gtk.Label("Tags:"), False, False, 2)
-        hboxTags.pack_end(tagsEntry)
+        hboxTags.pack_start(gtk.Label(_('Labels:')), False, False, 2)
+        hboxTags.pack_start(tagsEntry)
 
-        tab.pack_end(hboxOldTags, False, False, 2)
-        tab.pack_end(hboxTags, False, False, 2)
-        tab.pack_end(hboxTitle, False, False, 2)
+        tab.pack_start(hboxTitle, False, False, 2)
+        tab.pack_start(hboxTags, False, False, 2)
+        tab.pack_start(hboxOldTags, False, False, 2)
+        
+        hbox = gtk.HBox()
+        tab.get_children()[3].reparent(hbox)
+        
+        vbox = gtk.VBox()
+        
+        commentsFrame = gtk.Frame(_('Comments'))
+        attachmentsFrame = gtk.Frame(_('Attachments'))
+        
+        vbox.pack_start(commentsFrame, True, True, 2)
+        vbox.pack_end(attachmentsFrame, True, True, 2)
+        
+        comments.Comments(self.confluence).get(commentsFrame, page.id)
+        attachments.Attachments(self.confluence).get(attachmentsFrame, page.id)
+        
+        paned = gtk.HPaned()
+        paned.set_position(1000)
+        
+        paned.add1(hbox)
+        paned.add2(vbox)
+        
+        tab.pack_start(paned, True, True, 2)
+        
+        #hbox.pack_start(vbox, True, True, 2)
+        
         tab.show_all()
 
         return ['file://' + tf.name, page]
