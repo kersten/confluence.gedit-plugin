@@ -1,5 +1,9 @@
 import gtk
+import os
+import mimetypes
 from gettext import gettext as _
+
+import confluencerpclib
 
 
 class Attachments():
@@ -40,11 +44,54 @@ class Attachments():
         
         uploadHbox = gtk.HBox()
 
-        fileChooserButton = gtk.FileChooserButton(_('Add attachment'))
-        uploadButton = gtk.Button(_('Upload attachment'))
-        #btn.set_alignment(1.0, 0.5)
+        fileChooserButton = gtk.FileChooserButton(_('Add attachment'), None)
+        fileChooserButton.connect("file-set", self.upload, pageId)
 
         uploadHbox.pack_start(fileChooserButton, True, True, 2)
-        uploadHbox.pack_end(uploadButton, False, False, 2)
         
         vbox.pack_end(uploadHbox, False, False, 2)
+
+    def upload(self, widget, pageId):
+        dialog = gtk.MessageDialog(
+            None,
+            gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            gtk.MESSAGE_QUESTION,
+            gtk.BUTTONS_OK,
+            None)
+        dialog.set_title(_('Upload %s' % widget.get_filename()))
+        #create the text input field
+        title = gtk.Entry()
+        hbox = gtk.HBox()
+        hbox.pack_start(gtk.Label(_("Title:")), False, 5, 5)
+        hbox.pack_end(title)
+        
+        dialog.vbox.pack_start(hbox, True, True, 0)
+        
+        comment = gtk.Entry()
+        hbox = gtk.HBox()
+        hbox.pack_start(gtk.Label(_("Comment:")), False, 5, 5)
+        hbox.pack_end(comment)
+        
+        #some secondary text
+        #add it and show it
+        dialog.vbox.pack_end(hbox, True, True, 0)
+        dialog.show_all()
+        #go go go
+        dialog.run()
+        
+        mime, encoding = mimetypes.guess_type(widget.get_filename())
+        filesize = os.stat(widget.get_filename()).st_size
+        fd = open(widget.get_filename(), 'rb')
+        file = fd.read()
+        fd.close()
+
+        attachment = confluencerpclib.Attachment()
+        attachment.pageId = pageId
+        attachment.title = title.get_text()
+        attachment.fileName = os.path.basename(widget.get_filename())
+        attachment.fileSize = filesize
+        attachment.contentType = mime
+        attachment.comment = comment.get_text()
+        
+        self.confluence.addAttachment(pageId, attachment, file)
+        dialog.destroy()
