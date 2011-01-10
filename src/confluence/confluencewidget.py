@@ -121,6 +121,8 @@ class ConfluenceBrowser(gtk.VBox):
                         del(treeStore[id])
                 if len(treeStore) is 0:
                     finished = True
+            
+            self.browser.expand_row(model.get_path(parentIter), False)
         elif model[row][2] == 'isPage':
             loadedPage = page.Page(self.confluence).open(model[row][1], self.geditwindow)
             self.tabs[loadedPage[0]] = loadedPage[1]
@@ -268,21 +270,7 @@ class ConfluenceBrowser(gtk.VBox):
                 m = gtk.SeparatorMenuItem()
                 m.show()
                 menu.append(m)
-                
-                m = gtk.MenuItem(_('Read comments'))
-                menu.append(m)
-                m.show()
-                m.connect("activate", self._getComments, model[path[0]][1], model[path][1])
-                
-                m = gtk.MenuItem(_('Show attachments'))
-                menu.append(m)
-                m.show()
-                m.connect("activate", self._getAttachments, model[path[0]][1], model[path][1])
-                
-                m = gtk.SeparatorMenuItem()
-                m.show()
-                menu.append(m)
-                
+
                 m = gtk.MenuItem(_('Open in browser'))
                 menu.append(m)
                 m.show()

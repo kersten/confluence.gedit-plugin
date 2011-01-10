@@ -17,41 +17,48 @@ class Attachments():
         except:
             attachments = []
         
-        vbox = gtk.VBox()
-        widget.add(vbox)
+        self.cntAttachments = len(attachments)
         
-        if len(attachments) == 0:
-           vbox.pack_start(gtk.Label(_('No attachments for this page')))
+        self.vbox = gtk.VBox()
+        widget.add(self.vbox)
+        
+        self.vboxAttachments = gtk.VBox()
+        
+        if self.cntAttachments == 0:
+            self.label = gtk.Label(_('No attachments for this page'))
+            self.vboxAttachments.pack_start(self.label)
         else:
-            vboxAttachments = gtk.VBox()
-            
             for i, o in enumerate(attachments):
-                title = gtk.Label(o.title)
+                title = gtk.Button(o.title)
                 title.set_alignment(0, 0.5)
                 
-                vboxAttachments.pack_start(title, False, False, 2)
-                #table.attach(gtk.Label(o.fileSize), 1, 2, i, i+1, xoptions=gtk.SHRINK, yoptions=gtk.SHRINK)
-                #table.attach(gtk.Label(o.creator), 2, 3, i, i+1, xoptions=gtk.SHRINK, yoptions=gtk.SHRINK)
-                #table.attach(gtk.Label(o.created), 3, 4, i, i+1, xoptions=gtk.SHRINK, yoptions=gtk.SHRINK)
-                #table.attach(gtk.Label(o.comment), 4, 5, i, i+1, xoptions=gtk.SHRINK, yoptions=gtk.SHRINK)
+                title.connect("clicked", self.edit, pageId)
+                
+                self.vboxAttachments.pack_start(title, False, False, 2)
 
-            scrolled = gtk.ScrolledWindow()
-            port = gtk.Viewport()
-            port.add(vboxAttachments)
-            scrolled.add(port)
+        scrolled = gtk.ScrolledWindow()
+        port = gtk.Viewport()
+        port.add(self.vboxAttachments)
+        scrolled.add(port)
             
-            vbox.pack_start(scrolled, True, True, 2)
+        self.vbox.pack_start(scrolled, True, True, 2)
         
         uploadHbox = gtk.HBox()
 
         fileChooserButton = gtk.FileChooserButton(_('Add attachment'), None)
-        fileChooserButton.connect("file-set", self.upload, pageId)
+        fileChooserButton.connect("file-set", self.upload, pageId, self.vboxAttachments)
 
         uploadHbox.pack_start(fileChooserButton, True, True, 2)
         
-        vbox.pack_end(uploadHbox, False, False, 2)
+        self.vbox.pack_end(uploadHbox, False, False, 2)
 
-    def upload(self, widget, pageId):
+    def edit(self, widget, pageId):
+        dialog = gtk.Window()
+        dialog.set_title(_('Upload %s' % widget.get_label()))
+        
+        dialog.show_all()
+
+    def upload(self, widget, pageId, attachmentWidget):
         dialog = gtk.MessageDialog(
             None,
             gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
@@ -60,13 +67,6 @@ class Attachments():
             None)
         dialog.set_title(_('Upload %s' % widget.get_filename()))
         #create the text input field
-        title = gtk.Entry()
-        hbox = gtk.HBox()
-        hbox.pack_start(gtk.Label(_("Title:")), False, 5, 5)
-        hbox.pack_end(title)
-        
-        dialog.vbox.pack_start(hbox, True, True, 0)
-        
         comment = gtk.Entry()
         hbox = gtk.HBox()
         hbox.pack_start(gtk.Label(_("Comment:")), False, 5, 5)
@@ -87,11 +87,24 @@ class Attachments():
 
         attachment = confluencerpclib.Attachment()
         attachment.pageId = pageId
-        attachment.title = title.get_text()
         attachment.fileName = os.path.basename(widget.get_filename())
         attachment.fileSize = filesize
         attachment.contentType = mime
         attachment.comment = comment.get_text()
         
-        self.confluence.addAttachment(pageId, attachment, file)
+        try:
+            responseAttachment = self.confluence.addAttachment(pageId, attachment, file)
+
+            title = gtk.Button(attachment.fileName)
+            title.set_alignment(0, 0.5)
+                
+            title.connect("clicked", self.edit, pageId)
+            if self.cntAttachments == 0:
+                attachmentWidget.remove(self.label)
+
+            attachmentWidget.pack_start(title, False, False, 2)
+            attachmentWidget.show_all()
+        except Exception, err:
+            print err
+
         dialog.destroy()

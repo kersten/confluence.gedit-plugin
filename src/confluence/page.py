@@ -17,7 +17,14 @@ class Page():
     
     def open(self, pageId, geditWindow):
         # TODO: check permissions before opening page
-        page = self.confluence.getPage(pageId)
+        try:
+            page = self.confluence.getPage(pageId)
+        except Exception, err:
+                if err.__str__().find('InvalidSessionException'):
+                    self.confluence.login(self.options.username,
+                                          self.options.password)
+                    page = self.confluence.getPage(pageId)
+
         tf = tempfile.NamedTemporaryFile(delete=False)
         tf.seek(0)
         tf.write(page.content)
