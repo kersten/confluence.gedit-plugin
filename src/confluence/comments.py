@@ -1,11 +1,13 @@
 import gtk
 from gettext import gettext as _
 
+import options
 
 class Comments():
 
     def __init__(self, confluence):
         self.confluence = confluence
+        self.options = options.options()
 
     def get(self, widget, pageId):
         try:
@@ -25,7 +27,34 @@ class Comments():
             self.vboxComments.pack_start(self.label)
         else:
             for i, o in enumerate(comments):
-                pass
+                commentVbox = gtk.VBox()
+                commentHeaderHbox = gtk.HBox()
+                
+                commentVbox.pack_start(commentHeaderHbox, False, False, 2)
+                
+                commentByLabel = gtk.Label(_('Written by:'))
+                commentAuthorLabel = gtk.Label(self.confluence.getUser(o.creator))
+                
+                commentHeaderHbox.pack_start(commentByLabel, False, False, 2)
+                commentHeaderHbox.pack_start(commentAuthorLabel, False, False, 2)
+                
+                commentEditImage = gtk.Image()
+                commentAddImage = gtk.Image()
+                commentDeleteImage = gtk.Image()
+                
+                if o.creator == self.options.username:
+                    commentEditImage.set_from_stock(gtk.STOCK_EDIT, gtk.ICON_SIZE_MENU)
+                
+                commentAddImage.set_from_stock(gtk.STOCK_ADD, gtk.ICON_SIZE_MENU)
+                
+                if o.creator == self.options.username:
+                    commentDeleteImage.set_from_stock(gtk.STOCK_DELETE, gtk.ICON_SIZE_MENU)
+                
+                commentHeaderHbox.pack_end(commentDeleteImage, False, False, 2)
+                commentHeaderHbox.pack_end(commentAddImage, False, False, 2)
+                commentHeaderHbox.pack_end(commentEditImage, False, False, 2)
+                
+                self.vboxComments.pack_start(commentVbox, False, False, 2)
                 #title = gtk.Button(o.title)
                 #title.set_alignment(0, 0.5)
                 
