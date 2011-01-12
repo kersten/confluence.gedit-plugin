@@ -86,9 +86,11 @@ class Page():
         tab.pack_start(paned, True, True, 2)
         
         #hbox.pack_start(vbox, True, True, 2)
+        tab.get_parent().get_tab_label(tab).get_children()[0].get_children()[0].get_children()[2].set_text(page.title)
         
         tab.show_all()
-        tab.get_parent().get_tab_label(tab).get_children()[0].get_children()[0].get_children()[2].set_text(page.title)
+        #tab.get_document().set_short_name_for_display(page.title)
+        #tab.get_parent().get_tab_label(tab).get_children()[0].get_children()[0].get_children()[2].set_text(page.title)
 
         return ['file://' + tf.name, page]
 
@@ -166,7 +168,7 @@ class Page():
                     tabs[path] = self.confluence.updatePage(tabs[path], updateOptions)
             
             if tags.strip() != "":
-                self.confluence.addLabelByName(tags, self.tabs[path].id)
+                self.confluence.addLabelByName(tags, tabs[path].id)
             
             return tabs
 
