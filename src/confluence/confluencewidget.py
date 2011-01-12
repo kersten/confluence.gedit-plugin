@@ -124,8 +124,11 @@ class ConfluenceBrowser(gtk.VBox):
             
             self.browser.expand_row(model.get_path(parentIter), False)
         elif model[row][2] == 'isPage':
-            loadedPage = page.Page(self.confluence).open(model[row][1], self.geditwindow)
-            self.tabs[loadedPage[0]] = loadedPage[1]
+            if self.treestore.iter_has_child(parentIter):
+                self.browser.expand_row(model.get_path(parentIter), False)
+            else:
+                loadedPage = page.Page(self.confluence).open(model[row][1], self.geditwindow)
+                self.tabs[loadedPage[0]] = loadedPage[1]
     
     def _onActiveTabStateChanged(self, window):
         tabs = page.Page(self.confluence).save(window, self.tabs)
@@ -176,6 +179,10 @@ class ConfluenceBrowser(gtk.VBox):
             self._addPage(menuitem, spaceKey, parentPageId)
             return
         
+        self.tabs[loadedPage[0]] = loadedPage[1]
+
+    def _editPage(self, widget, pageId):
+        loadedPage = page.Page(self.confluence).open(pageId, self.geditwindow)
         self.tabs[loadedPage[0]] = loadedPage[1]
 
     def _reloadSelectedItem(self, menuitem, model):
@@ -261,6 +268,11 @@ class ConfluenceBrowser(gtk.VBox):
                 menu.append(m)
                 m.show()
                 m.connect("activate", self._addPage, model[path[0]][1], model[path][1])
+                
+                m = gtk.MenuItem(_('Edit page'))
+                menu.append(m)
+                m.show()
+                m.connect("activate", self._editPage, model[path][1])
                 
                 m = gtk.MenuItem(_('Remove page'))
                 menu.append(m)
