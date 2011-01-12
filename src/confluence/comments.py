@@ -26,14 +26,19 @@ class Comments():
             self.label = gtk.Label(_('No comments for this page'))
             self.vboxComments.pack_start(self.label)
         else:
+            lastId = ''
+            
             for i, o in enumerate(comments):
                 commentVbox = gtk.VBox()
                 commentHeaderHbox = gtk.HBox()
                 
-                commentVbox.pack_start(commentHeaderHbox, False, False, 2)
+                if len(lastId) != '' and lastId == o.parentId:
+                    commentVbox.pack_start(commentHeaderHbox, False, False, 10)
+                else:
+                    commentVbox.pack_start(commentHeaderHbox, False, False, 2)
                 
                 commentByLabel = gtk.Label(_('Written by:'))
-                commentAuthorLabel = gtk.Label(self.confluence.getUser(o.creator))
+                commentAuthorLabel = gtk.Label(self.confluence.getUser(o.creator).fullname)
                 
                 commentHeaderHbox.pack_start(commentByLabel, False, False, 2)
                 commentHeaderHbox.pack_start(commentAuthorLabel, False, False, 2)
@@ -55,6 +60,8 @@ class Comments():
                 commentHeaderHbox.pack_end(commentEditImage, False, False, 2)
                 
                 self.vboxComments.pack_start(commentVbox, False, False, 2)
+                
+                lastId = o.id
                 #title = gtk.Button(o.title)
                 #title.set_alignment(0, 0.5)
                 

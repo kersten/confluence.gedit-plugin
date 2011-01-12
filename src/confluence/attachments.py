@@ -29,12 +29,20 @@ class Attachments():
             self.vboxAttachments.pack_start(self.label)
         else:
             for i, o in enumerate(attachments):
-                title = gtk.Button(o.title)
+                fileHbox = gtk.HBox()
+                
+                title = gtk.Label(o.title)
                 title.set_alignment(0, 0.5)
                 
-                title.connect("clicked", self.edit, pageId)
+                attachmentRemoveImage = gtk.Image()
+                attachmentRemoveImage.set_from_stock(gtk.STOCK_DELETE, gtk.ICON_SIZE_MENU)
                 
-                self.vboxAttachments.pack_start(title, False, False, 2)
+                #title.connect("clicked", self.edit, pageId)
+                
+                fileHbox.pack_start(title, False, False, 2)
+                fileHbox.pack_end(attachmentRemoveImage, False, False, 2)
+                
+                self.vboxAttachments.pack_start(fileHbox, False, False, 2)
 
         scrolled = gtk.ScrolledWindow()
         port = gtk.Viewport()
