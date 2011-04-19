@@ -1,13 +1,16 @@
-import gtk
-import gobject
-import gedit
+from gi.repository import GObject, Gtk, Gdk, Gedit
 import os
 import sys
 import tempfile
 import urllib
 import webbrowser
 import webkit
-from gettext import gettext as _
+
+try:
+    gettext.bindtextdomain(GETTEXT_PACKAGE, GP_LOCALEDIR)
+    _ = lambda s: gettext.dgettext(GETTEXT_PACKAGE, s);
+except:
+    _ = lambda s: s
 
 import confluencerpclib
 import options
@@ -18,18 +21,18 @@ import page
 class ConfluenceBrowser(gtk.VBox):
     """ A widget that resides in gedits side panel. """
 
-    def __init__(self, geditwindow):
+    def __init__(self, window):
         """ geditwindow -- an instance of gedit.Window """
 
         gtk.VBox.__init__(self)
-        self.geditwindow = geditwindow
+        self.window = window
         
         self.tabs = {}
 
         try:
-            self.encoding = gedit.encoding_get_current()
+            self.encoding = Gedit.encoding_get_current()
         except:
-            self.encoding = gedit.gedit_encoding_get_current()
+            self.encoding = Gedit.gedit_encoding_get_current()
 
         self.active_timeout = False
 
@@ -75,8 +78,8 @@ class ConfluenceBrowser(gtk.VBox):
 
         # connect stuff
         self.browser.connect("row-activated", self._onRowActivated)
-        self.geditwindow.connect("active-tab-state-changed", self._onActiveTabStateChanged)
-        self.geditwindow.connect("tab-removed", self._onTabRemoved)
+        self.window.connect("active-tab-state-changed", self._onActiveTabStateChanged)
+        self.window.connect("tab-removed", self._onTabRemoved)
         self.show_all()
 
     def _onRowActivated(self, widget, row, col):
@@ -127,7 +130,7 @@ class ConfluenceBrowser(gtk.VBox):
             if self.treestore.iter_has_child(parentIter):
                 self.browser.expand_row(model.get_path(parentIter), False)
             else:
-                loadedPage = page.Page(self.confluence).open(model[row][1], self.geditwindow)
+                loadedPage = page.Page(self.confluence).open(model[row][1], self.window)
                 self.tabs[loadedPage[0]] = loadedPage[1]
     
     def _onActiveTabStateChanged(self, window):
@@ -167,13 +170,16 @@ class ConfluenceBrowser(gtk.VBox):
         self.browser.queue_draw()
 
         #spaces = self.confluence.getSpaces()
-        panel.add_item(self, "Confluence Browser", image)
+        panel.add_item(self, "Confluence Browser", _("Confluence Browser"), image)
+
+        statusbar = self.window.get_statusbar()
+        self.context_id = statusbar.get_context_id("Character Description")
 
         # store per window data in the window object
         windowdata = {"ConfluenceBrowser": self}
     
     def _addPage(self, menuitem, spaceKey, parentPageId=None):
-        loadedPage = page.Page(self.confluence).add(menuitem, self.geditwindow, spaceKey, parentPageId)
+        loadedPage = page.Page(self.confluence).add(menuitem, self.window, spaceKey, parentPageId)
         
         if loadedPage is False:
             self._addPage(menuitem, spaceKey, parentPageId)
@@ -182,7 +188,7 @@ class ConfluenceBrowser(gtk.VBox):
         self.tabs[loadedPage[0]] = loadedPage[1]
 
     def _editPage(self, widget, pageId):
-        loadedPage = page.Page(self.confluence).open(pageId, self.geditwindow)
+        loadedPage = page.Page(self.confluence).open(pageId, self.window)
         self.tabs[loadedPage[0]] = loadedPage[1]
 
     def _reloadSelectedItem(self, menuitem, model):

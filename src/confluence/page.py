@@ -1,7 +1,11 @@
-import gtk
-import gedit
+from gi.repository import GObject, Gtk, Gdk, Gedit
 import tempfile
-from gettext import gettext as _
+
+try:
+    gettext.bindtextdomain(GETTEXT_PACKAGE, GP_LOCALEDIR)
+    _ = lambda s: gettext.dgettext(GETTEXT_PACKAGE, s);
+except:
+    _ = lambda s: s
 
 import confluencerpclib
 import options

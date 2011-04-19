@@ -1,7 +1,9 @@
 import gtk
 from gettext import gettext as _
+from gobject import idle_add, PARAM_READWRITE, SIGNAL_RUN_FIRST, TYPE_PYOBJECT
 
 import options
+from CellRendererVBox import CellRendererWidget
 
 class Comments():
 
@@ -20,9 +22,29 @@ class Comments():
         self.vbox = gtk.VBox()
         widget.add(self.vbox)
         
+        self.commentBrowser = gtk.TreeView()
+        self.commentBrowser.set_headers_visible(False)
+        
+        self.column = gtk.TreeViewColumn('first', CellRendererWidget(gtk.VBox))
+        #self.column.pack_start(self.cellRenderer, True)
+        #self.column.add_attribute(self.cellRenderer, widget=1)
+        
+        self.commentBrowser.append_column(self.column)
+        
+        self.treestore = gtk.TreeStore(TYPE_PYOBJECT, bool)
+        
         self.vboxComments = gtk.VBox()
         
-        if self.cntComments == 0:
+        #self.treestore.append(None, self.vboxComments)
+        iter = self.treestore.append(None)
+        hb = gtk.VBox()
+        hb.pack_start(gtk.Button('testSFDFJLSDHFSDBHFLSDBFLIUSDBFISDBFABDFKBASZFBASDBFUADBFUADBFOUAVFUASVFOUZASVFOUZAVFOUZAVFOUZAVFOUVAOFVBAOUDFZVAODFVOADFVOZUADFVOUZAVFOUZAF'))
+        self.treestore.set(iter, 0, hb, 1, True)
+        
+        self.commentBrowser.set_model(self.treestore)
+        self.commentBrowser.show_all()
+        
+        '''if self.cntComments == 0:
             self.label = gtk.Label(_('No comments for this page'))
             self.vboxComments.pack_start(self.label)
         else:
@@ -68,10 +90,10 @@ class Comments():
                 #title.connect("clicked", self.edit, pageId)
                 
                 #self.vboxAttachments.pack_start(title, False, False, 2)
-        
+        '''
         scrolled = gtk.ScrolledWindow()
         port = gtk.Viewport()
-        port.add(self.vboxComments)
+        port.add(self.commentBrowser)
         scrolled.add(port)
             
         self.vbox.pack_start(scrolled, True, True, 2)
