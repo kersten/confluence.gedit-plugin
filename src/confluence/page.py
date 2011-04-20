@@ -22,16 +22,16 @@ class Page():
     def open(self, pageId, geditWindow):
         # TODO: check permissions before opening page
         try:
-            page = self.confluence.getPage(pageId)
+            self.page = self.confluence.getPage(pageId)
         except Exception, err:
                 if err.__str__().find('InvalidSessionException'):
                     self.confluence.login(self.options._settings.get_string(self.options.USERNAME),
                                           self.options._settings.get_string(self.options.PASSWORD))
-                    page = self.confluence.getPage(pageId)
+                    self.page = self.confluence.getPage(pageId)
 
         tf = tempfile.NamedTemporaryFile(delete=False)
         tf.seek(0)
-        tf.write(page.content.encode('utf-8'))
+        tf.write(self.page.content.encode('utf-8'))
 
         gfile = Gio.file_new_for_uri('file://' + tf.name)
         
@@ -40,9 +40,9 @@ class Page():
         
         title = Gtk.Entry()
         title.set_name('title')
-        title.set_text(page.title);
+        title.set_text(self.page.title);
         
-        tags = self.confluence.getLabelsById(page.id)
+        tags = self.confluence.getLabelsById(self.page.id)
         
         tagsEntry = Gtk.Entry()
         tagsEntry.set_name('tags')
@@ -55,7 +55,7 @@ class Page():
         
         for i in tags:
             tag = Gtk.Button(label=i.name)
-            tag.connect("clicked", self._clickTagDelete, i.id, page.id)
+            tag.connect("clicked", self._clickTagDelete, i.id, self.page.id)
             hboxOldTags.pack_start(tag, False, False, 2)
         
         hboxTitle = Gtk.HBox()
@@ -97,15 +97,15 @@ class Page():
         
         #hbox.pack_start(vbox, True, True, 2)
         #tab.get_parent().get_tab_label(tab).get_children()[0].get_children()[0].get_children()[2].set_text(page.title)
-        tab.get_document().set_short_name_for_display(page.title)
+        tab.get_document().set_short_name_for_display(self.page.title)
 
-        tab.get_document().connect("saving", self._save, tab, page)
+        tab.get_document().connect("saving", self._save, tab, self.page)
         
         tab.show_all()
         #tab.get_document().set_short_name_for_display(page.title)
         #tab.get_parent().get_tab_label(tab).get_children()[0].get_children()[0].get_children()[2].set_text(page.title)
 
-        return ['file://' + tf.name, page]
+        return ['file://' + tf.name, self.page]
 
     def add(self, menuitem, geditWindow, spaceKey, parentPageId=None):
         dialog = Gtk.MessageDialog(
@@ -150,7 +150,7 @@ class Page():
             except Exception, err:
                 if err.__str__().find('InvalidSessionException'):
                     self.confluence.login(self.options.username,
-                                          self.options.password)
+                                          self.options.password)    
                     storedPage = self.confluence.storePage(newPage)
 
             return self.open(storedPage.id, geditWindow)
@@ -164,25 +164,23 @@ class Page():
         title = tab.get_children()[0].get_children()[1].get_text()
         tags = tab.get_children()[1].get_children()[1].get_text()
 
-        page.title = title
-        page.content = tab.get_document().get_text(tab.get_document().get_start_iter(), tab.get_document().get_end_iter(), True)
+        self.page.title = title
+        self.page.content = tab.get_document().get_text(tab.get_document().get_start_iter(), tab.get_document().get_end_iter(), True)
         
         updateOptions = confluencerpclib.PageUpdateOptions()
         updateOptions.versionComment = ''
         updateOptions.minorEdit = True
         
         try:
-            page = self.confluence.updatePage(page, updateOptions)
+            self.page = self.confluence.updatePage(self.page, updateOptions)
         except Exception, err:
             if err.__str__().find('InvalidSessionException'):
                 self.confluence.login(self.options._settings.get_string(self.options.USERNAME),
                                     self.options._settings.get_string(self.options.PASSWORD))
-                page = self.confluence.updatePage(page, updateOptions)
+                self.page = self.confluence.updatePage(self.page, updateOptions)
         
         if tags.strip() != "":
-            self.confluence.addLabelByName(tags, page.id)
-        
-        return page
+            self.confluence.addLabelByName(tags, self.page.id)
 
     def save(self, window, tabs):
         tab = window.get_active_tab()
