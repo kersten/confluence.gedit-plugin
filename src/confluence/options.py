@@ -1,84 +1,42 @@
-import gtk.glade
-import gconf
 import os
-import sys
+from gi.repository import Gio, Gtk, Gdk
 
 from confluencerpclib import Confluence
-from confluencewidget import ConfluenceBrowser
 
+__all__ = ('ConfluenceBrwoserConfigWidget')
 
-class options():
+class ConfluenceBrowserConfigWidget(object):
 
-    __shared_state = {}
+    BASE = 'org.gnome.gedit.plugins.confluence'
+    USERNAME = 'username'
+    PASSWORD = 'password'
+    URL = 'url'
+    LOGINPASSED = 'loginpassed'
 
-    def __init__(self, initWindow=None, confluencewidget=None):
-        self.__dict__ = self.__shared_state
+    def __init__(self):
+        object.__init__(self)
         
-        self.initWindow = initWindow
-        self.confluencewidget = confluencewidget
+        self._settings = Gio.Settings.new(self.BASE)
+        self._ui = Gtk.Builder()
 
-        self.__gconfDir = "/apps/gedit-2/plugins/confluence"
-        # create gconf directory if not set yet
-        self.client = gconf.client_get_default()
-        if not self.client.dir_exists(self.__gconfDir):
-            self.client.add_dir(self.__gconfDir, gconf.CLIENT_PRELOAD_NONE)
+    def configure_widget(self, datadir):
+        self._ui_path = os.path.join(datadir, 'confluencePluginConfigureDialog.glade')
+        self._ui.add_objects_from_file(self._ui_path, ["time_dialog_content"])
 
-        self.username = ""
-        self.password = ""
-        self.url = "https://your.confluence.url/rpc/xmlrpc"
-        self.loginPassed = False
+        print self._settings.get_string(self.PASSWORD)
 
-        # get the gconf keys, or stay with default if key not set
-        try:
-            self.username = self.client.get_string(
-                self.__gconfDir + "/username") \
-                or self.username
+        self.set_default_values(self._ui.get_object('username'),
+                                   self._settings.get_string(self.USERNAME))
+        self.set_default_values(self._ui.get_object('password'),
+                                   self._settings.get_string(self.PASSWORD))
+        self.set_default_values(self._ui.get_object('url'),
+                                   self._settings.get_string(self.URL))
 
-            self.password = self.client.get_string(
-                self.__gconfDir + "/password") \
-                or self.password
+        self._ui.connect_signals(self)
 
-            self.url = self.client.get_string(
-                self.__gconfDir + "/url") or self.url
+        widget = self._ui.get_object('time_dialog_content')
 
-            self.loginPassed = self.client.get_bool(
-                self.__gconfDir + "/loginPassed") or self.loginPassed
-
-        except Exception, e: # catch, just in case
-            print e
-
-    def create_configure_dialog(self):
-        print self.initWindow
-        print self.confluencewidget
-        self.dialogGladeFile = os.path.join(sys.path[0], "confluence",
-                               "confluencePluginConfigureDialog.glade")
-
-        self.dialog = gtk.Builder()
-        self.dialog.add_from_file(self.dialogGladeFile)
-        #self.dialog.connect_signals(self)
-
-        self.dialogWindow = self.dialog.get_object(
-                            "confluencePluginConfigureDialog")
-
-        self.dialogWindowUsername = self.dialog.get_object("loginUsername")
-        self.dialogWindowUsername.set_text(self.username)
-
-        self.dialogWindowPassword = self.dialog.get_object("loginPassword")
-        self.dialogWindowPassword.set_text(self.password)
-
-        self.dialogWindowUrl = self.dialog.get_object("loginURL")
-        self.dialogWindowUrl.set_text(self.url)
-
-        self.dialogSignals = {
-            "on_closeButton_clicked": self.on_closeButton_clicked,
-            "on_testButton_clicked": self.on_testButton_clicked,
-            "on_removeCredentials_clicked": self._removeCredentials,
-            "on_loginUsername_changed": self._inputChanged,
-            "on_loginPassword_changed": self._inputChanged,
-            "on_loginURL_changed": self._inputChanged}
-        self.dialog.connect_signals(self.dialogSignals)
-
-        return self.dialogWindow
+        return widget
 
     def on_closeButton_clicked(self, widget):
         self.username = self.dialogWindowUsername.get_text()
@@ -110,24 +68,35 @@ class options():
             self.confluencewidget.loadConfluenceBrowser(self.window)
 
     def on_testButton_clicked(self, widget):
-        self.username = self.dialogWindowUsername.get_text()
-        self.password = self.dialogWindowPassword.get_text()
-        self.url = self.dialogWindowUrl.get_text()
+        self.username = self._ui.get_object('username').get_text()
+        self.password = self._ui.get_object('password').get_text()
+        self.url = self._ui.get_object('url').get_text()
 
         if self.confluenceLogin() is True:
             msg = "Login successful"
             
             self.loginPassed = True
-            self.client.set_bool(self.__gconfDir + "/loginPassed",
-                                 self.loginPassed)
+            self._settings.set_string(self.USERNAME, self._ui.get_object('username').get_text())
+            self._settings.set_string(self.PASSWORD, self._ui.get_object('password').get_text())
+            self._settings.set_string(self.URL, self._ui.get_object('url').get_text())
+            self._settings.set_boolean(self.LOGINPASSED, True)
         else:
             msg = "Login failed"
 
-        message = gtk.MessageDialog(None,
-            gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            gtk.MESSAGE_INFO, gtk.BUTTONS_OK, msg)
+        message = Gtk.MessageDialog(None,
+            Gtk.DialogFlags.MODAL | Gtk.DialogFlags.DESTROY_WITH_PARENT,
+            Gtk.MessageType.INFO, Gtk.ButtonsType.OK, msg)
         message.run()
         message.destroy()
+
+    def confluenceLogin(self):
+        try:
+            self.confluence = Confluence(self._ui.get_object('url').get_text(), True)
+            if self.confluence.login(self._ui.get_object('username').get_text(), self._ui.get_object('password').get_text()) is True:
+                self.confluence.logout()
+                return True
+        except Exception, err:
+            return False
     
     def _removeCredentials(self, widget):
         self.username = ""
@@ -135,29 +104,30 @@ class options():
         self.url = "https://your.confluence.url/rpc/xmlrpc"
         self.loginPassed = False
         
-        '''self.client = gconf.client_get_default()
-
-        self.client.set_string(self.__gconfDir + "/username",
-                               self.username)
-        self.client.set_string(self.__gconfDir + "/password",
-                               self.password)
-        self.client.set_string(self.__gconfDir + "/url",
-                               self.url)
-        self.client.set_bool(self.__gconfDir + "/loginPassed",
-                                 self.loginPassed)'''
         print self.initWindow
         self.initWindow.unloadConfluenceBrowser(self.initWindow)
         self.dialogWindow.destroy()
     
-    def _inputChanged(self, widget):
+    def on_loginUsername_changed(self, widget):
         self.loginPassed = False
         return
 
-    def confluenceLogin(self):
-        try:
-            self.confluence = Confluence(self.url, True)
-            if self.confluence.login(self.username, self.password) is True:
-                self.confluence.logout()
-                return True
-        except Exception, err:
-            return False
+    def on_loginPassword_changed(self, widget):
+        self.loginPassed = False
+        return
+
+    def on_loginURL_changed(self, widget):
+        self.loginPassed = False
+        return
+
+    @staticmethod
+    def set_default_values(widget, value):
+        widget.set_text(value)
+
+    def on_colorbutton_command_color_set(self, colorbutton):
+        self._settings.set_string(self.CONSOLE_KEY_COMMAND_COLOR,
+                                  colorbutton.get_color().to_string())
+
+    def on_colorbutton_error_color_set(self, colorbutton):
+        self._settings.set_string(self.CONSOLE_KEY_ERROR_COLOR,
+                                  colorbutton.get_color().to_string())

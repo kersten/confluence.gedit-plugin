@@ -1,6 +1,6 @@
 NULL =
 
-plugindir = $(GEDIT_PLUGIN_DIR)/confluence
+plugindir = $(GEDIT_PLUGINS_LIBS_DIR)/confluence
 
 plugin_PYTHON = \
 	__init__.py \
@@ -8,18 +8,10 @@ plugin_PYTHON = \
 	comments.py \
 	confluencewidget.py \
 	options.py \
-	page.py \
-	$(NULL)
+	page.py
 
-uidir = $(plugindir)
+uidir = $(GEDIT_PLUGINS_DATA_DIR)/confluence
 ui_DATA = \
 	confluencePluginConfigureDialog.glade
 
 EXTRA_DIST = $(ui_DATA)
-
-dist-hook:
-	mkdir $(distdir)/data
-	cp -p $(srcdir)/data/* $(distdir)/data
-
-CLEANFILES = *.bak *.pyc *.pyo $(plugin_DATA)
-DISTCLEANFILES = *.bak *.pyc *.pyo $(plugin_DATA)

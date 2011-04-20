@@ -1,0 +1,2 @@
+	../src/confluence.gedit-plugin.desktop.in \
+	../src/confluence/confluencewidget.py

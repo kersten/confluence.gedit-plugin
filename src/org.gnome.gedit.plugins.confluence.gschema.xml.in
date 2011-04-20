@@ -1,0 +1,28 @@
+<schemalist>
+  <schema gettext-domain="gedit-plugins" id="org.gnome.gedit.plugins.confluence" path="/org/gnome/gedit/plugins/confluence/">
+    <key name="username" type="s">
+      <default>'user'</default>
+      <_summary>Username</_summary>
+      <_description>Username</_description>
+    </key>
+    <key name="password" type="s">
+      <default>'pass'</default>
+      <_summary>Password</_summary>
+      <_description>Password</_description>
+    </key>
+    <key name="url" type="s">
+      <default>'https://your.confluence.url/rpc/xmlrpc'</default>
+      <_summary>Confluence system url</_summary>
+      <_description>
+        Confluence system url
+      </_description>
+    </key>
+    <key name="loginpassed" type="b">
+      <default>false</default>
+      <_summary>LoginPassed</_summary>
+      <_description>
+        Saves if the login with the given credentials is valid
+      </_description>
+    </key>
+  </schema>
+</schemalist>

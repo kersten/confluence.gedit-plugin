@@ -1,4 +1,4 @@
-from gi.repository import GObject, Gtk, Gdk, Gedit
+from gi.repository import GObject, Gtk, Gdk, Gedit, Gio
 import tempfile
 
 try:
@@ -8,16 +8,16 @@ except:
     _ = lambda s: s
 
 import confluencerpclib
-import options
-import attachments
-import comments
+from options import ConfluenceBrowserConfigWidget
+#import attachments
+#import comments
 
 
 class Page():
     
     def __init__(self, confluence):
         self.confluence = confluence
-        self.options = options.options()
+        self.options = ConfluenceBrowserConfigWidget()
     
     def open(self, pageId, geditWindow):
         # TODO: check permissions before opening page
@@ -25,72 +25,81 @@ class Page():
             page = self.confluence.getPage(pageId)
         except Exception, err:
                 if err.__str__().find('InvalidSessionException'):
-                    self.confluence.login(self.options.username,
-                                          self.options.password)
+                    self.confluence.login(self.options._settings.get_string(self.options.USERNAME),
+                                          self.options._settings.get_string(self.options.PASSWORD))
                     page = self.confluence.getPage(pageId)
 
         tf = tempfile.NamedTemporaryFile(delete=False)
         tf.seek(0)
-        tf.write(page.content)
-        tab = geditWindow.create_tab_from_uri('file://' + tf.name, None,
-                                              0, False, True)
+        tf.write(page.content.encode('utf-8'))
+
+        gfile = Gio.file_new_for_uri('file://' + tf.name)
         
-        title = gtk.Entry()
+        tab = geditWindow.create_tab_from_location(gfile, None,
+                                              0, False, True, True)
+        
+        title = Gtk.Entry()
         title.set_name('title')
         title.set_text(page.title);
         
         tags = self.confluence.getLabelsById(page.id)
         
-        tagsEntry = gtk.Entry()
+        tagsEntry = Gtk.Entry()
         tagsEntry.set_name('tags')
         
         tagsMerged = []
         
-        hboxOldTags = gtk.HBox()
-        hboxOldTags.pack_start(gtk.Label(_('Existing labels:')), False,
+        hboxOldTags = Gtk.HBox()
+        hboxOldTags.pack_start(Gtk.Label(_('Existing labels:')), False,
                                False, 2)
         
         for i in tags:
-            tag = gtk.Button(label=i.name)
+            tag = Gtk.Button(label=i.name)
             tag.connect("clicked", self._clickTagDelete, i.id, page.id)
             hboxOldTags.pack_start(tag, False, False, 2)
         
-        hboxTitle = gtk.HBox()
-        hboxTitle.pack_start(gtk.Label(_('Title:')), False, False, 2)
-        hboxTitle.pack_start(title)
+        hboxTitle = Gtk.HBox()
+        hboxTitle.pack_start(Gtk.Label(_('Title:')), False, False, 2)
+        hboxTitle.pack_start(title, False, False, 2)
         
-        hboxTags = gtk.HBox()
-        hboxTags.pack_start(gtk.Label(_('Labels:')), False, False, 2)
-        hboxTags.pack_start(tagsEntry)
+        hboxTags = Gtk.HBox()
+        hboxTags.pack_start(Gtk.Label(_('Labels:')), False, False, 2)
+        hboxTags.pack_start(tagsEntry, False, False, 2)
 
         tab.pack_start(hboxTitle, False, False, 2)
         tab.pack_start(hboxTags, False, False, 2)
         tab.pack_start(hboxOldTags, False, False, 2)
         
-        hbox = gtk.HBox()
+        hbox = Gtk.HBox()
         tab.get_children()[3].reparent(hbox)
         
-        vbox = gtk.VBox()
+        vbox = Gtk.VBox()
         
-        commentsFrame = gtk.Frame(_('Comments'))
-        attachmentsFrame = gtk.Frame(_('Attachments'))
+        #commentsFrame = Gtk.Frame(_('Comments'))
+        #attachmentsFrame = Gtk.Frame(_('Attachments'))
+
+        commentsFrame = Gtk.Frame()
+        attachmentsFrame = Gtk.Frame()
         
         vbox.pack_start(commentsFrame, True, True, 2)
         vbox.pack_end(attachmentsFrame, True, True, 2)
         
-        comments.Comments(self.confluence).get(commentsFrame, page.id)
-        attachments.Attachments(self.confluence).get(attachmentsFrame, page.id)
+        #comments.Comments(self.confluence).get(commentsFrame, page.id)
+        #attachments.Attachments(self.confluence).get(attachmentsFrame, page.id)
         
-        paned = gtk.HPaned()
+        paned = Gtk.HPaned()
         paned.set_position(1000)
         
-        paned.add1(hbox)
+        #paned.add1(hbox)
         paned.add2(vbox)
         
-        tab.pack_start(paned, True, True, 2)
+        tab.pack_start(hbox, True, True, 2)
         
         #hbox.pack_start(vbox, True, True, 2)
-        tab.get_parent().get_tab_label(tab).get_children()[0].get_children()[0].get_children()[2].set_text(page.title)
+        #tab.get_parent().get_tab_label(tab).get_children()[0].get_children()[0].get_children()[2].set_text(page.title)
+        tab.get_document().set_short_name_for_display(page.title)
+
+        tab.get_document().connect("saving", self._save, tab, page)
         
         tab.show_all()
         #tab.get_document().set_short_name_for_display(page.title)
@@ -99,17 +108,17 @@ class Page():
         return ['file://' + tf.name, page]
 
     def add(self, menuitem, geditWindow, spaceKey, parentPageId=None):
-        dialog = gtk.MessageDialog(
+        dialog = Gtk.MessageDialog(
             None,
-            gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            gtk.MESSAGE_QUESTION,
-            gtk.BUTTONS_OK,
+            Gtk.DIALOG_MODAL | Gtk.DIALOG_DESTROY_WITH_PARENT,
+            Gtk.MESSAGE_QUESTION,
+            Gtk.BUTTONS_OK,
             None)
         dialog.set_markup('Please enter the title of the page:')
         #create the text input field
-        entry = gtk.Entry()
-        hbox = gtk.HBox()
-        hbox.pack_start(gtk.Label("Title:"), False, 5, 5)
+        entry = Gtk.Entry()
+        hbox = Gtk.HBox()
+        hbox.pack_start(Gtk.Label("Title:"), False, 5, 5)
         hbox.pack_end(entry)
         #some secondary text
         #add it and show it
@@ -119,7 +128,7 @@ class Page():
         dialog.run()
         title = entry.get_text()
         
-        if title.strip() == "" and gtk.RESPONSE_OK:
+        if title.strip() == "" and Gtk.RESPONSE_OK:
             dialog.destroy()
             #self._add(menuitem, spaceKey, parentPageId)
             return False
@@ -149,11 +158,39 @@ class Page():
     def remove(self, menuitem, pageId, path):
         self.confluence.removePage(pageId)
 
+    def _save(self, document, arg1, arg2, tab, page):
+        path = tab.get_document().get_location()
+
+        title = tab.get_children()[0].get_children()[1].get_text()
+        tags = tab.get_children()[1].get_children()[1].get_text()
+
+        page.title = title
+        page.content = tab.get_document().get_text(tab.get_document().get_start_iter(), tab.get_document().get_end_iter(), True)
+        
+        updateOptions = confluencerpclib.PageUpdateOptions()
+        updateOptions.versionComment = ''
+        updateOptions.minorEdit = True
+        
+        try:
+            page = self.confluence.updatePage(page, updateOptions)
+        except Exception, err:
+            if err.__str__().find('InvalidSessionException'):
+                self.confluence.login(self.options._settings.get_string(self.options.USERNAME),
+                                    self.options._settings.get_string(self.options.PASSWORD))
+                page = self.confluence.updatePage(page, updateOptions)
+        
+        if tags.strip() != "":
+            self.confluence.addLabelByName(tags, page.id)
+        
+        return page
+
     def save(self, window, tabs):
         tab = window.get_active_tab()
-        path = tab.get_document().get_uri()
+        path = tab.get_document().get_location()
+
+        print tab.get_state()
         
-        if tab and tab.get_state() == gedit.TAB_STATE_SAVING and tabs.has_key(path):
+        if tab and tab.get_state() == GEDIT_TAB_STATE_SAVING and tabs.has_key(path):
             title = tab.get_children()[0].get_children()[1].get_text()
             tags = tab.get_children()[1].get_children()[1].get_text()
 
