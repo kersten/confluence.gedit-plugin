@@ -94,7 +94,15 @@ class ConfluenceBrowser(gtk.VBox):
             
             treeStore = {}
             
-            for parent in self.confluence.getPages(model[row][1]):
+            try:
+                sapceContent = self.confluence.getPages(model[row][1]
+            except Exception, err:
+                if err.__str__().find('InvalidSessionException'):
+                    self.confluence.login(self.options._settings.get_string(self.options.USERNAME),
+                                        self.options._settings.get_string(self.options.PASSWORD))
+                    sapceContent = self.confluence.getPages(model[row][1]
+            
+            for parent in spaceContent:
                 if parent.parentId != "0":
                     treeStore.setdefault(parent.parentId,[]).append((parent.title, parent.id, 'isPage'))
                 else:
